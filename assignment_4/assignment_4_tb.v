@@ -47,6 +47,9 @@ module assignment_4_tb();
     //25MHz = 40ns
     //40MHz = 25ns
     //20MHz = 50ns
+    clk=0;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5
     clk=1;
     $display ("Time=%t\n  clk=%b", $realtime, clk);
     #5//5ns delay

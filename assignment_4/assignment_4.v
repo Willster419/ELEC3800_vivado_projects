@@ -41,7 +41,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   output [31:0] iaddrbus;
   ////////////////////////////////////////////////////////////////
   
-  //the clock. it's a clock
+  //the clock. it's a clock. it does clock things.
   input clk;
   
   //the databus or loading and storing data to (big bad) memeory
@@ -50,24 +50,35 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   output [31:0] daddrbus;
   
   //the wires used for the operation bus
+  //connects the instructon queue (top module for now)
+  //to the reservation stations
   wire [2:0] opbus_opcode;
   wire [2:0] opbus_dest;
   wire [2:0] opbus_src_a;
   wire [2:0] opbus_src_b;
   
   //the wires used for the common data bus
+  //connects the execution units to the regfile and
+  //to the reservation stations
   wire [2:0] cdbus_dest;
-  wire [7:0] cdbus_dest_shift;//assign it to be always shifted value of cdbus_dest
+  wire [7:0] cdbus_dest_shift;
   wire [31:0] cdbus_data;
+  wire cdbus_valid_data;
   
-  //wires for reg
-  wire [7:0] busy_bus;
-  
-  //wires connectingthe regfile to the reservation station
+  //wires connecting the regfile to the reservation station
   wire [31:0] abus_wire;
   wire [31:0] bbus_wire;
   wire [7:0] a_select_wire;
   wire [7:0] b_select_wire;
+  wire [7:0] busy_bus;
+  
+  //wires connecting the reservation station and the execution unit
+  wire [2:0] rs_ex_op_code;
+  wire [2:0] rs_ex_d_select;
+  wire [7:0] rs_ex_d_select_shift;
+  wire [31:0] rs_ex_abus_data;
+  wire [31:0] rs_ex_bbus_data;
+  wire rs_ex_fp_add_is_busy;
   
   //the reg flags for the execution units
   reg mem_flag;
@@ -101,19 +112,12 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   regfile best_regfile_name_ever
   (
     //ins
-    .clk(clk),
-    .Aselect(a_select_wire),
-    .Bselect(b_select_wire),
-    .busySelect(busy_select_shift),
+    .clk(clk), .Aselect(a_select_wire), .Bselect(b_select_wire), .busySelect(busy_select_shift),
+    .Dselect(cdbus_dest_shift), .dbus(cdbus_data), .validData(cdbus_valid_data),
     //outs
-    .busyBus(busy_bus),
-    .abus(abus_wire),
-    .bbus(bbus_wire)
+    .busyBus(busy_bus), .abus(abus_wire), .bbus(bbus_wire)
     //not useds
-    /*
-      .Dselect(),
-      .dbus()
-    */
+    
   );
   
   //reservation station instance for added
@@ -123,11 +127,24 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     .clk(clk), .fake_clock(fake_clock), .station_selected(FP_add_flag), .opbus_op(opbus_opcode), .opbus_dest(opbus_dest),
     .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire), .bbus_in(bbus_wire), .busy_bus(busy_bus),
     //outs
-    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_add_full_flag)
+    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_add_full_flag),
+    .execution_unit_busy(rs_ex_fp_add_is_busy), .d_select_out(rs_ex_d_select), .d_select_out_shift(rs_ex_d_select_shift),
+    .abus_out(rs_ex_abus_data), .bbus_out(rs_ex_bbus_data), .op_code_out(rs_ex_op_code)
     //not useds
-    /*
-      .execution_unit_busy(), .d_select_out(), .d_select_out_shift(), .abus_out(), .bbus_out(), .op_code_out(),
-    */
+    
+  );
+  //execution unit instance for adding
+  //ID=10=FP_ADD
+  execution_unit #(.CYCLE_TIME(3),.ID(2'b10)) FP_add_unit
+  (
+    //ins
+    .clk(clk), .op_code_in(rs_ex_op_code), .d_select_in(rs_ex_d_select), .d_select_shift_in(rs_ex_d_select_shift),
+    .abus_data_in(rs_ex_abus_data), .bbus_data_in(rs_ex_bbus_data),
+    //outs
+    .is_busy(rs_ex_fp_add_is_busy), .valid_data(cdbus_valid_data), .dbus_data_out(cdbus_data), .d_select_out(cdbus_dest),
+    .d_select_shift_out(cdbus_dest_shift)
+    //not useds
+    
   );
   
   initial begin
@@ -156,7 +173,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     instruction_queue[5] [11:0] = 12'b000_000_000_000;
   end
   
-  always @(negedge clk) begin
+  always @(posedge clk) begin
     //decode the instruction
     //set the flags to 0
     mem_flag = 0;
@@ -430,7 +447,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
     end
     
   end
-  always @(posedge clk) begin
+  always @(negedge clk) begin
     counter = 0;
     //update the values from the data index saved earlier
     if(a_update_index_flag) begin
@@ -506,102 +523,95 @@ ID is as follows:
 00 = integer unit
 01 = FP multiplier unit
 10 = FP adder unit
-
-module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)(operation,dselect_index,abus_data,bbus_data,clk,is_busy,write_data,reg_index_out,processed_data_out);
-  //the input from the reservation station
-  input [2:0] operation, dselect_index;
-  //the data from the regfile from the reservation station
-  //NOTE: data from the regfile may be different at this point
-  input [31:0] abus_data, bbus_data;
-  //it's the clock lol
+*/
+module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
+  (
+    //in
+    clk, op_code_in, d_select_in, d_select_shift_in, abus_data_in, bbus_data_in,
+    //out
+    is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out
+  );
+  //fake clock that happends at the end of the posedge reservation station
   input clk;
+  //the inputs from the reservation station
+  input [2:0] op_code_in;
+  input [2:0] d_select_in;
+  input [7:0] d_select_shift_in;
+  input [31:0] abus_data_in;
+  input [31:0] bbus_data_in;
   //flag to determine if the execution unit is busy
   output reg is_busy;
   //flag for the regfile to verify it only accepts the final value at the correct time
-  output reg write_data;
-  //counter to use for determining the "cycle" of execution
-  reg [2:0] counter;
-  //the holder for the regfile index
-  reg [7:0] reg_index;
-  //the holder for the processed data
-  reg [31:0] processed_data;
+  output reg valid_data;
   //the actual outputs for above, but in output form
-  output reg [7:0] reg_index_out;
-  output reg [31:0] processed_data_out;
+  output reg [31:0] dbus_data_out;
+  output reg [2:0] d_select_out;
+  output reg [7:0] d_select_shift_out;
+  //counter to use for determining the "cycle" of execution
+  reg [31:0] counter;
+  
   initial begin
     //set all the stuffs to 0
     is_busy = 0;
-    counter = 3'b0;
-    reg_index = 8'b0;
-    processed_data = 0;
-    write_data = 0;
-    //it's going to a dumb register anyway
-    reg_index_out = 8'b0;
-    processed_data_out = 0;
+    valid_data = 0;
+    dbus_data_out = 0;
+    d_select_out = 0;
+    d_select_shift_out = 0;
+    counter = 0;
   end
+  //the clock is actually the fake clock from the reservation station
   always @(posedge clk) begin
-    write_data = 0;
-    counter = counter + 1'b1;
-    if(!is_busy)begin
-      //set the unit to busy
-      is_busy = 1;
-      //set the actual registry index value
-      //set it to 0 first to make sure it actually works
-      reg_index = 8'b0;
-      reg_index = 1'b1 << dselect_index;
-      //accept the new value
-      /*
-      Current Instruction List:
-      NOP   000
-      LD    001
-      ST    010
-      ADDF  011
-      MULTF 100
-      
-      case(ID)
-        2'b00: begin
-          //integer execution unit
-          //nothing yet...
-        end
-        2'b01: begin
-          //FP multiplier unit
-          case(operation)
-            3'b100: begin
-              //adding floating point
-              processed_data = abus_data + bbus_data;
-            end
-          endcase
-        end
-        2'b10: begin
-          //FP adder unit
-          case(operation)
-            3'b011: begin
-              //multiplying floating point
-              processed_data = abus_data * bbus_data;
-            end
-          endcase
-        end
-      endcase
+    valid_data = 0;
+    if(op_code_in > 0) begin
+      counter = counter + 1;
+      if(!is_busy)begin
+        //set the unit to busy
+        is_busy = 1;
+        //set the index outputs from the inputs
+        d_select_out = d_select_in;
+        d_select_shift_out = d_select_shift_in;
+        case(ID)
+          2'b00: begin
+            //integer execution unit
+            //nothing yet...
+          end
+          2'b01: begin
+            //FP multiplier unit
+            case(op_code_in)
+              3'b100: begin
+                //multing floating point
+                dbus_data_out = abus_data_in * bbus_data_in;
+              end
+            endcase
+          end
+          2'b10: begin
+            //FP adder unit
+            case(op_code_in)
+              3'b011: begin
+                //add floating point
+                dbus_data_out = abus_data_in + bbus_data_in;
+              end
+            endcase
+          end
+        endcase
+      end
     end
     if(counter == CYCLE_TIME) begin
       //reset the counter and the busy flag
       is_busy = 0;
-      counter = 3'b0;
+      counter = 0;
       //set the write data flag to high
       //the reg will pick it up at the neg edge
-      write_data = 1;
-      //actually write the select and data on the output
-      reg_index_out = reg_index;
-      processed_data_out = processed_data;
+      valid_data = 1;
     end
   end
 endmodule
 
 //the module for dealing with the memory
-module memory_unit()
+module memory_unit();
   
 endmodule
-*/
+
 //the reg file
 //registers are 32 bit length
 //there are 8 of them
@@ -615,7 +625,8 @@ module regfile(
   output [31:0] abus,//data out
   output [31:0] bbus,//data out
   output [7:0] busyBus,//bus for each of the reg entries if it's busy or not
-  input clk
+  input clk,
+  input validData
   );
   //if it's requesting register 0 just output a 0
   assign abus = Aselect[0] ? 32'b0 : 32'bz;
@@ -630,11 +641,12 @@ module regfile(
     .busySelect(busySelect[7:0]),
     .bbus(bbus),
     .isBusy(busyBus[7:0]),
-    .clk(clk)
+    .clk(clk),
+    .validData(validData)
     );
 endmodule
 
-module DNegflipFlop(dbus, abus, Dselect, Bselect, Aselect, bbus, clk, busySelect, isBusy);
+module DNegflipFlop(dbus, abus, Dselect, Bselect, Aselect, bbus, clk, busySelect, isBusy, validData);
   input [31:0] dbus;
   input Dselect;//the select write bit for this register
   input Bselect;//the select read bit for this register
@@ -645,6 +657,7 @@ module DNegflipFlop(dbus, abus, Dselect, Bselect, Aselect, bbus, clk, busySelect
   output [31:0] bbus;
   reg [31:0] data;//the actual data for the register
   output reg isBusy;
+  input validData;
   
   initial begin
   //start the registers empty
@@ -659,12 +672,12 @@ module DNegflipFlop(dbus, abus, Dselect, Bselect, Aselect, bbus, clk, busySelect
   
   always @(negedge clk) begin
     //if this register has d select high, update the data from the dbus
-    if(Dselect) begin
+    if(Dselect && validData) begin
       data = dbus;
       isBusy = 0;
     end
   end
   //if this register has a or b select high, update the a and b bus
-  assign abus = Aselect? data : 32'hzzzzzzzzzzzzzzzz;
-  assign bbus = Bselect? data : 32'hzzzzzzzzzzzzzzzz;
+  assign abus = Aselect? data : 32'hzzzzzzzz;
+  assign bbus = Bselect? data : 32'hzzzzzzzz;
 endmodule
