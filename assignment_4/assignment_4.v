@@ -117,11 +117,11 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   );
   
   //reservation station instance for added
-  reservation_station #(.BUS_LENGTH(4)) FP_add_station
+  reservation_station #(.BUS_LENGTH(5)) FP_add_station
   (
     //ins
-    .fake_clock(fake_clock), .station_selected(FP_add_flag), .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a),
-    .opbus_src_b(opbus_src_b), .abus_in(abus_wire), .bbus_in(bbus_wire), .busy_bus(busy_bus),
+    .clk(clk), .fake_clock(fake_clock), .station_selected(FP_add_flag), .opbus_op(opbus_opcode), .opbus_dest(opbus_dest),
+    .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire), .bbus_in(bbus_wire), .busy_bus(busy_bus),
     //outs
     .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_add_full_flag)
     //not useds
@@ -210,6 +210,8 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
       for(i = 0; i < 5; i=i+1) begin
         instruction_queue[i] = instruction_queue[i+1];
       end
+      //and fill the last one with zeros
+      instruction_queue[5] = 12'b0;
     end
     //invert the clock so that it #triggers the reservation station
     fake_clock = ~fake_clock;
@@ -226,10 +228,12 @@ endmodule
 module reservation_station #(parameter BUS_LENGTH = 1)
   (
     //ins
-    fake_clock, station_selected, opbus_op, opbus_dest, opbus_src_a, opbus_src_b, abus_in, bbus_in, busy_bus, execution_unit_busy,
+    clk, fake_clock, station_selected, opbus_op, opbus_dest, opbus_src_a, opbus_src_b, abus_in, bbus_in, busy_bus, execution_unit_busy,
     //outs
-    a_select_out, b_select_out, d_select_out, d_select_out_shift, abus_out, bbus_out, op_code_out, station_full
+    a_select_out, b_select_out, d_select_out, d_select_out_shift, abus_out, bbus_out, op_code_out, station_full, trigger_exes
   );
+  //the regular good'ol clock
+  input clk;
   //the delayed clock for triggering the alwyas block
   //it's the last thing done in the always block for the instruction dequeuing
   input fake_clock;
@@ -258,18 +262,23 @@ module reservation_station #(parameter BUS_LENGTH = 1)
   output reg [2:0] op_code_out;
   //flag to tell wether the station is full
   output reg station_full;
+  //output to trigger the execution, happends at the end of the posedge block here
+  //so it acts as a dealy
+  output reg trigger_exes;
   //INFO: it may be possible to later do this as a module array
   //array of busses acting as the queue
-  reg[BUS_LENGTH:0] op_code [2:0];
-  reg[BUS_LENGTH:0] dest_reg [2:0];
-  reg[BUS_LENGTH:0] dest_reg_shift [7:0];
-  reg[BUS_LENGTH:0] src_a [2:0];
-  reg[BUS_LENGTH:0] src_a_shift [7:0];
-  reg[BUS_LENGTH:0] src_b [2:0];
-  reg[BUS_LENGTH:0] src_b_shift [7:0];
+  //first bracket is how wide each register is
+  //second bracket is now many in the array
+  reg[2:0] op_code [BUS_LENGTH:0];
+  reg[2:0] dest_reg [BUS_LENGTH:0];
+  reg[7:0] dest_reg_shift [BUS_LENGTH:0];
+  reg[2:0] src_a [BUS_LENGTH:0];
+  reg[7:0] src_a_shift [BUS_LENGTH:0];
+  reg[2:0] src_b [BUS_LENGTH:0];
+  reg[7:0] src_b_shift [BUS_LENGTH:0];
   //the data from the regfile
-  reg[BUS_LENGTH:0] abus_data[31:0];
-  reg[BUS_LENGTH:0] bbus_data[31:0];
+  reg[31:0] abus_data[BUS_LENGTH:0];
+  reg[31:0] bbus_data[BUS_LENGTH:0];
   //array of bits if the instruction at the index is ready
   //if a and b have the data yet
   reg[BUS_LENGTH:0] operation_data_a_ready;
@@ -286,21 +295,45 @@ module reservation_station #(parameter BUS_LENGTH = 1)
   reg[2:0] cdb_dest;
   reg[7:0] cdb_dest_shift;
   
+  //indexs saying which station index a and b data to update at the positive edge
+  reg[31:0] a_update_index;
+  reg[31:0] b_update_index;
+  reg a_update_index_flag;
+  reg b_update_index_flag;
+  
   initial begin
+    trigger_exes = 0;
+    a_update_index = 0;
+    b_update_index = 0;
+    a_update_index_flag = 0;
+    b_update_index_flag = 0;
     //init everyting to 0
     a_select_out = 8'bz;
     b_select_out = 8'bz;
     d_select_out = 8'bz;
+    d_select_out_shift = 8'bz;
     abus_out = 32'bz;
     bbus_out = 32'bz;
-    op_code_out = 3'b0;//NOP
+    op_code_out = 3'bz;
     station_full = 0;
     counter = 0;
-    //TODO: figure out if this works
-    operation_data_a_ready = 0;
-    operation_data_b_ready = 0;
-    station_in_use = 0;
-    //TODO: figure out how to write all double arrays
+    repeat(BUS_LENGTH+1) begin
+      op_code[counter] = 3'b0;
+      dest_reg[counter] = 3'b0;
+      dest_reg_shift[counter] = 8'b0;
+      src_a[counter] = 3'b0;
+      src_a_shift[counter] = 8'b0;
+      src_b[counter] = 3'b0;
+      src_b_shift[counter] = 8'b0;
+      abus_data[counter] = 32'b0;
+      bbus_data[counter] = 32'b0;
+      operation_data_a_ready[counter] = 0;
+      operation_data_b_ready[counter] = 0;
+      station_in_use[counter] = 0;
+      counter = counter+1;
+    end
+    counter = 0;
+    counter2 = 0;
   end
   
   //use fake_clock to give a little delay
@@ -309,13 +342,17 @@ module reservation_station #(parameter BUS_LENGTH = 1)
   always @(fake_clock) begin
     //only run this if the station is not full
     counter = 0;
+    counter2 = 0;
+    a_update_index_flag = 0;
+    b_update_index_flag = 0;
     //extra if statement check, in theory not needed
     if(!station_full) begin
       //use a loop to incriment the counter to determine the next available station
       //at this point we know that the station has at least one slot available
       if(station_selected) begin:enqueue_op_break
-        repeat(BUS_LENGTH) begin:enqueue_op_continue
+        repeat(BUS_LENGTH+1) begin:enqueue_op_continue
           if(!station_in_use[counter]) begin
+            $display("station %d is not in use, filling", counter);
             //update hte value in that counter
             op_code[counter] [2:0] = opbus_op;
             dest_reg_shift[counter] [7:0] = 8'b00000001 << opbus_dest;
@@ -324,11 +361,11 @@ module reservation_station #(parameter BUS_LENGTH = 1)
             src_b[counter] [2:0] = opbus_src_b;
             src_a_shift[counter] [7:0] = 8'b00000001 << opbus_src_a;
             src_b_shift[counter] [7:0] = 8'b00000001 << opbus_src_b;
-            //don't need to do this part here since it's taken care of in the next loop
             operation_data_a_ready[counter] = 0;
             operation_data_b_ready[counter] = 0;
+            station_in_use[counter] = 1;
             //also check if it's the last reservation station
-            if(counter+1 == BUS_LENGTH) begin
+            if(counter == BUS_LENGTH) begin
               station_full = 1;
             end
             //and disable the loop to prevent accidental updating any more values
@@ -341,22 +378,34 @@ module reservation_station #(parameter BUS_LENGTH = 1)
     counter = 0;
     //use a loop to incriment the counter  for checking if data is ready
     begin:data_check_break
-      repeat(BUS_LENGTH) begin:data_check_continue
+      repeat(BUS_LENGTH+1) begin:data_check_continue
         if(station_in_use[counter]) begin
+          $display("station %d is in use", counter);
           //check if the value for each src is ready
           //first check via snooping
           if(!operation_data_a_ready[counter]) begin
+            $display("data for a is not ready");
             //if the snopped data is relavent to this reservation station
             if(0) begin
               //don't snoop for now, cdb not connected...
+              //update the value with the snopped value and set data ready flag
               operation_data_a_ready[counter]=1;
+              //TODO:
+              //but also check down below the queue that any destination registers don't match (WAW)
+              //loop to check down
+              //if dest==src_a
+              //op_data_a_ready = 0;
             end
+            //NOTE: not sure if the +1 needs to be there
             else if(!busy_bus[src_a[counter]]) begin
+              $display("busy bus says regfile index of %d is up to date", src_a[counter]);
               //it is ready, set the output address of a
               //it will trigger the wire to put the value at the reg index onto the abus
               a_select_out = src_a_shift[counter];
-              abus_data[counter] = abus_in;
+              a_update_index = counter;
+              //abus_data[counter] = abus_in;//don't do this until the posedge part
               operation_data_a_ready[counter]=1;
+              a_update_index_flag = 1;
             end
           end
           if(!operation_data_b_ready[counter]) begin
@@ -369,21 +418,35 @@ module reservation_station #(parameter BUS_LENGTH = 1)
               //it is ready, set the output address of a
               //it will trigger the wire to put the value at the reg index onto the abus
               b_select_out = src_b_shift[counter];
-              bbus_data[counter] = bbus_in;
+              b_update_index = counter;
+              //bbus_data[counter] = bbus_in;//don't do this until the posedge part
               operation_data_b_ready[counter]=1;
+              b_update_index_flag = 1;
             end
           end
         end
         counter = counter+1;
       end
     end
-    //use a loop to enqueue the next value onto the output bus
+    
+  end
+  always @(posedge clk) begin
     counter = 0;
+    //update the values from the data index saved earlier
+    if(a_update_index_flag) begin
+      abus_data[a_update_index] = abus_in;
+    end
+    if(b_update_index_flag) begin
+      bbus_data[b_update_index] = bbus_in;
+    end
+    a_update_index_flag = 0;
+    b_update_index_flag = 0;
     begin:data_output_break
       //only touch the output bus if you have to!
-      repeat(BUS_LENGTH) begin:data_output_continue
+      repeat(BUS_LENGTH+1) begin:data_output_continue
         if(station_in_use[counter] && operation_data_a_ready[counter] && operation_data_b_ready[counter]) begin
           //set all the stuff and touch the output buses
+          $display("station %d is in use, and operation data is ready",counter);
           abus_out = abus_data[counter];
           bbus_out = bbus_data[counter];
           d_select_out = dest_reg[counter];
@@ -396,23 +459,8 @@ module reservation_station #(parameter BUS_LENGTH = 1)
             without touching the values below it (like unit 0)
             and the top will therefore be filled with zeors
           */
-          //regs to shift:
-          /*
-            reg[BUS_LENGTH:0] op_code [2:0];
-            reg[BUS_LENGTH:0] dest_reg [2:0];
-            reg[BUS_LENGTH:0] dest_reg_shift [7:0];
-            reg[BUS_LENGTH:0] src_a [2:0];
-            reg[BUS_LENGTH:0] src_a_shift [7:0];
-            reg[BUS_LENGTH:0] src_b [2:0];
-            reg[BUG_LENGTH:0] src_b_shift [7:0];
-            reg[BUG_LENGTH:0] abus_data[31:0];
-            reg[BUG_LENGTH:0] bbus_data[31:0];
-            reg[BUS_LENGTH:0] operation_data_a_ready;
-            reg[BUS_LENGTH:0] operation_data_b_ready;
-            reg[BUS_LENGTH:0] station_in_use;
-          */
           counter2 = counter;
-          repeat(BUS_LENGTH - counter - 1)begin
+          repeat(BUS_LENGTH - counter)begin
             op_code[counter2] = op_code[counter2+1];
             dest_reg[counter2] = dest_reg[counter2+1];
             dest_reg_shift[counter2] = dest_reg_shift[counter2+1];
@@ -427,6 +475,19 @@ module reservation_station #(parameter BUS_LENGTH = 1)
             station_in_use[counter2] = station_in_use[counter2+1];
             counter2 = counter2+1;
           end
+          //then set the values of the last one to 0
+          op_code[BUS_LENGTH] = 0;
+          dest_reg[BUS_LENGTH] = 0;
+          dest_reg_shift[BUS_LENGTH] = 0;
+          src_a[BUS_LENGTH] = 0;
+          src_a_shift[BUS_LENGTH] = 0;
+          src_b[BUS_LENGTH] = 0;
+          src_b_shift[BUS_LENGTH] = 0;
+          abus_data[BUS_LENGTH] = 0;
+          bbus_data[BUS_LENGTH] = 0;
+          operation_data_a_ready[BUS_LENGTH] = 0;
+          operation_data_b_ready[BUS_LENGTH] = 0;
+          station_in_use[BUS_LENGTH] = 0;
           //and also set the station full flag to low
           station_full = 0;
           disable data_output_break;
@@ -434,6 +495,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
         counter = counter+1;
       end
     end
+    trigger_exes = ~trigger_exes;
   end
 endmodule
 
