@@ -164,7 +164,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     //set the current instructin to nothing
     current_instruction = 12'b0;
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b011_010_001_000;//add, r2, r1, r0
+    instruction_queue[0] [11:0] = 12'b011_000_001_000;//add, r2, r1, r0
     //instruction_queue[1] [11:0] = 12'b011_011_001_000;//add, r3, r1, r0
     //instruction_queue[2] [11:0] = 12'b011_100_001_000;//add, r4, r1, r0
     //instruction_queue[3] [11:0] = 12'b000_101_010_011;//add, r5, r2, r3
@@ -223,7 +223,9 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     endcase
     if(mem_flag||FP_add_flag||FP_mult_flag||int_flag) begin
       //set the busyBus for the regfile
-      busy_select_shift = 8'b00000001 << current_instruction[8:6];
+      //if the destination is r0, don't bother cause it's the 0 register
+      busy_select_shift = (current_instruction[8:6] == 3'b0)? 8'b0 : 8'b00000001 << current_instruction[8:6];
+      //busy_select_shift = 8'b00000001 << current_instruction[8:6];
       //shift the entries down from the queue
       //act as the dequeue
       for(i = 0; i < 5; i=i+1) begin
