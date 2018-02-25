@@ -564,6 +564,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out
   );
   //fake clock that happends at the end of the posedge reservation station
+  //^not true
   input clk;
   //the inputs from the reservation station
   input [2:0] op_code_in;
@@ -628,7 +629,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
         endcase
       end
     end
-    if(counter == CYCLE_TIME) begin
+    if(counter >= CYCLE_TIME) begin
       //reset the counter and the busy flag
       is_busy = 0;
       counter = 0;
@@ -637,11 +638,63 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
       valid_data = 1;
     end
   end
+  
+  //TODO:
+  //try making always at posedge of mux busy to set exe busy
 endmodule
 
 //the module for dealing with the memory
 module memory_unit();
   
+endmodule
+
+//the mux to use as the bit arbitor
+module smart_mux
+(
+  //in
+  fake_clock, mem_valid, FP_mult_valid, FP_add_valid, int_valid, mem_d_select, FP_mult_d_select, FP_add_d_select,
+  int_d_select, mem_d_select_shift, FP_mult_d_select_shift, FP_add_d_select_shift, int_d_select_shift, mem_data,
+  FP_mult_data, FP_add_data, int_data,
+  //out
+  mux_busy, mem_data_accepted, FP_mult_data_accepted, FP_add_data_accepted, int_data_accepted, cdbus_d_select,
+  cdbus_d_select_shift, cdbus_data
+);
+  //the clock that is set at the end of the fp mult execution unit in hopes of getting a delay
+  input fake_clock;
+  //the 4 flags to state if we have valid input to process
+  input mem_valid;
+  input FP_mult_valid;
+  input FP_add_valid;
+  input int_valid;
+  //the 4 d_select values
+  input mem_d_select;
+  input FP_mult_d_select;
+  input FP_add_d_select;
+  input int_d_select;
+  //the 4 d_select_shift values
+  input mem_d_select_shift;
+  input FP_mult_d_select_shift;
+  input FP_add_d_select_shift;
+  input int_d_select_shift;
+  //the 4 data values
+  input mem_data;
+  input FP_mult_data
+  input FP_add_data
+  input int_data;
+  //output to trigger if the mux is busy with two or more inputs
+  output reg mux_busy;
+  //output flags for the execution units if their data was accepted
+  output reg mem_data_accepted;
+  output reg FP_mult_data_accepted;
+  output reg FP_add_data_accepted;
+  output reg int_data_accepted;
+  //the output for the common data bus
+  output reg [2:0] cdbus_d_select;
+  output reg [7:0] cdbus_d_select_shift;
+  output reg [31:0] cdbus_data;
+  
+  //always at fake clock set the values
+  //if multiple inputs accept one of them and only set that one to high
 endmodule
 
 //the reg file
