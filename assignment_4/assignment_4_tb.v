@@ -74,5 +74,35 @@ module assignment_4_tb();
     clk=0;
     $display ("Time=%t\n  clk=%b", $realtime, clk);
     #5;
+    clk=1;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5
+    clk=0;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5;
+    clk=1;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5
+    clk=0;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5;
+    clk=1;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5
+    clk=0;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5;
+    clk=1;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5
+    clk=0;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5;
+    clk=1;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5
+    clk=0;
+    $display ("Time=%t\n  clk=%b", $realtime, clk);
+    #5;
   end
 endmodule

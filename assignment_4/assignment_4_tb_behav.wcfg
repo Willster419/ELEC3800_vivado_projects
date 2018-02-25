@@ -13,13 +13,13 @@
    <zoom_setting>
       <ZoomStartTime time="0fs"></ZoomStartTime>
       <ZoomEndTime time="49911583fs"></ZoomEndTime>
-      <Cursor1Time time="15517000fs"></Cursor1Time>
+      <Cursor1Time time="50000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="198"></NameColumnWidth>
       <ValueColumnWidth column_width="73"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="45" />
+   <WVObjectSize size="40" />
    <wvobject fp_name="/assignment_4_tb/dut/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -90,45 +90,23 @@
       <obj_property name="ElementShortName">src_a[5:0][2:0]</obj_property>
       <obj_property name="ObjectShortName">src_a[5:0][2:0]</obj_property>
    </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/src_b" type="array">
+      <obj_property name="ElementShortName">src_b[5:0][2:0]</obj_property>
+      <obj_property name="ObjectShortName">src_b[5:0][2:0]</obj_property>
+   </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/src_a_shift" type="array">
       <obj_property name="ElementShortName">src_a_shift[5:0][7:0]</obj_property>
       <obj_property name="ObjectShortName">src_a_shift[5:0][7:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/a_select_out" type="array">
-      <obj_property name="ElementShortName">a_select_out[7:0]</obj_property>
-      <obj_property name="ObjectShortName">a_select_out[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/best_regfile_name_ever/Aselect" type="array">
-      <obj_property name="ElementShortName">Aselect[7:0]</obj_property>
-      <obj_property name="ObjectShortName">Aselect[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/best_regfile_name_ever/abus" type="array">
-      <obj_property name="ElementShortName">abus[31:0]</obj_property>
-      <obj_property name="ObjectShortName">abus[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/abus_wire" type="array">
-      <obj_property name="ElementShortName">abus_wire[31:0]</obj_property>
-      <obj_property name="ObjectShortName">abus_wire[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/abus_in" type="array">
-      <obj_property name="ElementShortName">abus_in[31:0]</obj_property>
-      <obj_property name="ObjectShortName">abus_in[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/abus_data" type="array">
-      <obj_property name="ElementShortName">abus_data[5:0][31:0]</obj_property>
-      <obj_property name="ObjectShortName">abus_data[5:0][31:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/src_b" type="array">
-      <obj_property name="ElementShortName">src_b[5:0][2:0]</obj_property>
-      <obj_property name="ObjectShortName">src_b[5:0][2:0]</obj_property>
-   </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/src_b_shift" type="array">
       <obj_property name="ElementShortName">src_b_shift[5:0][7:0]</obj_property>
       <obj_property name="ObjectShortName">src_b_shift[5:0][7:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/a_select_out" type="array">
+      <obj_property name="ElementShortName">a_select_out[7:0]</obj_property>
+      <obj_property name="ObjectShortName">a_select_out[7:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/b_select_out" type="array">

@@ -164,8 +164,10 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     //set the current instructin to nothing
     current_instruction = 12'b0;
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b011_011_010_001;
-    //instruction_queue[1] [11:0] = 12'b100_000_101_100;
+    instruction_queue[0] [11:0] = 12'b011_010_001_000;//add, r2, r1, r0
+    //instruction_queue[1] [11:0] = 12'b011_011_001_000;//add, r3, r1, r0
+    //instruction_queue[2] [11:0] = 12'b011_100_001_000;//add, r4, r1, r0
+    //instruction_queue[3] [11:0] = 12'b000_101_010_011;//add, r5, r2, r3
     instruction_queue[1] [11:0] = 12'b000_000_000_000;
     instruction_queue[2] [11:0] = 12'b000_000_000_000;
     instruction_queue[3] [11:0] = 12'b000_000_000_000;
@@ -631,16 +633,17 @@ module regfile(
   //if it's requesting register 0 just output a 0
   assign abus = Aselect[0] ? 32'b0 : 32'bz;
   assign bbus = Bselect[0] ? 32'b0 : 32'bz;
+  assign busyBus[0] = 0;
   //only 8 of these for now
-  DNegflipFlop myFlips[7:0](
+  DNegflipFlop myFlips[6:0](
     .dbus(dbus),
     .abus(abus),
-    .Dselect(Dselect[7:0]),//doing this means that index 7 of Deslect will go to DNegflipFlop index 7
-    .Bselect(Bselect[7:0]),
-    .Aselect(Aselect[7:0]),
-    .busySelect(busySelect[7:0]),
+    .Dselect(Dselect[7:1]),//doing this means that index 7 of Deslect will go to DNegflipFlop index 7
+    .Bselect(Bselect[7:1]),
+    .Aselect(Aselect[7:1]),
+    .busySelect(busySelect[7:1]),
     .bbus(bbus),
-    .isBusy(busyBus[7:0]),
+    .isBusy(busyBus[7:1]),
     .clk(clk),
     .validData(validData)
     );
