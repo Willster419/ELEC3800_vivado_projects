@@ -126,10 +126,12 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     //ins
     .clk(clk), .fake_clock(fake_clock), .station_selected(FP_add_flag), .opbus_op(opbus_opcode), .opbus_dest(opbus_dest),
     .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire), .bbus_in(bbus_wire), .busy_bus(busy_bus),
+    .execution_unit_busy(rs_ex_fp_add_is_busy), .cdbus_dest(cdbus_dest), .cdbus_dest_shift(cdbus_dest_shift),
+    .cdbus_dest_data(cdbus_data),
     //outs
-    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_add_full_flag),
-    .execution_unit_busy(rs_ex_fp_add_is_busy), .d_select_out(rs_ex_d_select), .d_select_out_shift(rs_ex_d_select_shift),
-    .abus_out(rs_ex_abus_data), .bbus_out(rs_ex_bbus_data), .op_code_out(rs_ex_op_code)
+    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_add_full_flag), .d_select_out(rs_ex_d_select),
+    .d_select_out_shift(rs_ex_d_select_shift), .abus_out(rs_ex_abus_data), .bbus_out(rs_ex_bbus_data),
+    .op_code_out(rs_ex_op_code)
     //not useds
     
   );
@@ -164,11 +166,8 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     //set the current instructin to nothing
     current_instruction = 12'b0;
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b011_000_001_000;//add, r2, r1, r0
-    //instruction_queue[1] [11:0] = 12'b011_011_001_000;//add, r3, r1, r0
-    //instruction_queue[2] [11:0] = 12'b011_100_001_000;//add, r4, r1, r0
-    //instruction_queue[3] [11:0] = 12'b000_101_010_011;//add, r5, r2, r3
-    instruction_queue[1] [11:0] = 12'b000_000_000_000;
+    instruction_queue[0] [11:0] = 12'b011_010_001_001;//add, r2, r1, r1 (r2=2)
+    instruction_queue[1] [11:0] = 12'b011_011_010_001;//add, r3, r2, r1 (r3=3)
     instruction_queue[2] [11:0] = 12'b000_000_000_000;
     instruction_queue[3] [11:0] = 12'b000_000_000_000;
     instruction_queue[4] [11:0] = 12'b000_000_000_000;
@@ -249,7 +248,8 @@ endmodule
 module reservation_station #(parameter BUS_LENGTH = 1)
   (
     //ins
-    clk, fake_clock, station_selected, opbus_op, opbus_dest, opbus_src_a, opbus_src_b, abus_in, bbus_in, busy_bus, execution_unit_busy,
+    clk, fake_clock, station_selected, opbus_op, opbus_dest, opbus_src_a, opbus_src_b, abus_in, bbus_in, busy_bus,
+    execution_unit_busy, cdbus_dest, cdbus_dest_shift, cdbus_dest_data,
     //outs
     a_select_out, b_select_out, d_select_out, d_select_out_shift, abus_out, bbus_out, op_code_out, station_full, trigger_exes
   );
@@ -271,6 +271,10 @@ module reservation_station #(parameter BUS_LENGTH = 1)
   input [7:0] busy_bus;
   //flag for if the execution unit is busy
   input execution_unit_busy;
+  //the common data bus for snooping
+  input [2:0] cdbus_dest;
+  input [7:0] cdbus_dest_shift;
+  input [31:0] cdbus_dest_data;
   //the selector to the regfile for which register to use in the abus
   output reg [7:0] a_select_out;
   output reg [7:0] b_select_out;
@@ -310,11 +314,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
   //used as the index location for where to enqueue the instruction
   reg[31:0] counter;
   reg[31:0] counter2;
-  
-  //for simulation purposes, simlulate the common data bus
-  reg[31:0] cdb_data;
-  reg[2:0] cdb_dest;
-  reg[7:0] cdb_dest_shift;
+  reg[31:0] counter3;
   
   //indexs saying which station index a and b data to update at the positive edge
   reg[31:0] a_update_index;
@@ -355,6 +355,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
     end
     counter = 0;
     counter2 = 0;
+    counter3 = 0;
   end
   
   //use fake_clock to give a little delay
@@ -364,6 +365,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
     //only run this if the station is not full
     counter = 0;
     counter2 = 0;
+    counter3 = 0;
     a_update_index_flag = 0;
     b_update_index_flag = 0;
     //extra if statement check, in theory not needed
@@ -388,6 +390,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
             //also check if it's the last reservation station
             if(counter == BUS_LENGTH) begin
               station_full = 1;
+              $display("reservation station is full");
             end
             //and disable the loop to prevent accidental updating any more values
             disable enqueue_op_break;
@@ -405,21 +408,32 @@ module reservation_station #(parameter BUS_LENGTH = 1)
           //check if the value for each src is ready
           //first check via snooping
           if(!operation_data_a_ready[counter]) begin
-            $display("data for a is not ready");
+            $display("data for a (%d) is not ready", src_a[counter]);
             //if the snopped data is relavent to this reservation station
-            if(0) begin
-              //don't snoop for now, cdb not connected...
+            //$display("testing for common data bus: cdbus_dest=%d, src_a[counter]=%d",cdbus_dest,src_a[counter]);
+            if(cdbus_dest == src_a[counter]) begin
+              $display("cdbus says data for register a at index %d is relavent", src_a[counter]);
               //update the value with the snopped value and set data ready flag
+              abus_data[counter] = cdbus_dest_data;
               operation_data_a_ready[counter]=1;
               //TODO:
               //but also check down below the queue that any destination registers don't match (WAW)
               //loop to check down
               //if dest==src_a
               //op_data_a_ready = 0;
+              if(counter > 0) begin: WAW_check_break_a
+                counter3 = counter-1;
+                repeat(counter) begin
+                  if(dest_reg[counter3] == src_a[counter])begin
+                    $display("setting a back to false because destination of %d conflicts with a of %d",counter3,counter);
+                    operation_data_a_ready[counter]=0;
+                  end
+                  counter3 = counter3-1;
+                end
+              end
             end
-            //NOTE: not sure if the +1 needs to be there
             else if(!busy_bus[src_a[counter]]) begin
-              $display("busy bus says regfile index of %d is up to date", src_a[counter]);
+              $display("busybus says regfile index of %d for a is up to date", src_a[counter]);
               //it is ready, set the output address of a
               //it will trigger the wire to put the value at the reg index onto the abus
               a_select_out = src_a_shift[counter];
@@ -430,12 +444,25 @@ module reservation_station #(parameter BUS_LENGTH = 1)
             end
           end
           if(!operation_data_b_ready[counter]) begin
+            $display("data for b (%d) is not ready", src_b[counter]);
             //if the snopped data is relavent to this reservation station
-            if(0) begin
-              //don't snoop for now, cdb not connected...
+            if(cdbus_dest == src_b[counter]) begin
+              $display("cdbus says data for register b at index %d is relavent", src_b[counter]);
+              bbus_data[counter] = cdbus_dest_data;
               operation_data_b_ready[counter]=1;
+              if(counter > 0) begin: WAW_check_break_b
+                counter3 = counter-1;
+                repeat(counter) begin
+                  if(dest_reg[counter3] == src_b[counter])begin
+                    $display("setting b back to false because destination of %d conflicts with b of %d",counter3,counter);
+                    operation_data_b_ready[counter]=0;
+                  end
+                  counter3 = counter3-1;
+                end
+              end
             end
             else if(!busy_bus[src_b[counter]]) begin
+              $display("busybus says regfile index of %d for b is up to date", src_b[counter]);
               //it is ready, set the output address of a
               //it will trigger the wire to put the value at the reg index onto the abus
               b_select_out = src_b_shift[counter];
@@ -465,9 +492,9 @@ module reservation_station #(parameter BUS_LENGTH = 1)
     begin:data_output_break
       //only touch the output bus if you have to!
       repeat(BUS_LENGTH+1) begin:data_output_continue
-        if(station_in_use[counter] && operation_data_a_ready[counter] && operation_data_b_ready[counter]) begin
+        if(station_in_use[counter] && operation_data_a_ready[counter] && operation_data_b_ready[counter] && !execution_unit_busy) begin
           //set all the stuff and touch the output buses
-          $display("station %d is in use, and operation data is ready",counter);
+          $display("station %d is in use, and operation data is ready\ndequeuing for execution",counter);
           abus_out = abus_data[counter];
           bbus_out = bbus_data[counter];
           d_select_out = dest_reg[counter];

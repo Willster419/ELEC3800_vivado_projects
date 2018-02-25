@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="49911583fs"></ZoomEndTime>
-      <Cursor1Time time="50000000fs"></Cursor1Time>
+      <ZoomStartTime time="93480695fs"></ZoomStartTime>
+      <ZoomEndTime time="143303861fs"></ZoomEndTime>
+      <Cursor1Time time="135000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="198"></NameColumnWidth>
       <ValueColumnWidth column_width="73"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="40" />
+   <WVObjectSize size="42" />
    <wvobject fp_name="/assignment_4_tb/dut/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -157,11 +157,6 @@
       <obj_property name="ObjectShortName">op_code_in[2:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_unit/ID" type="array">
-      <obj_property name="ElementShortName">ID[1:0]</obj_property>
-      <obj_property name="ObjectShortName">ID[1:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_unit/d_select_in" type="array">
       <obj_property name="ElementShortName">d_select_in[2:0]</obj_property>
       <obj_property name="ObjectShortName">d_select_in[2:0]</obj_property>
@@ -178,6 +173,14 @@
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_unit/bbus_data_in" type="array">
       <obj_property name="ElementShortName">bbus_data_in[31:0]</obj_property>
       <obj_property name="ObjectShortName">bbus_data_in[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/cdbus_dest" type="array">
+      <obj_property name="ElementShortName">cdbus_dest[2:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_dest[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/cdbus_dest_data" type="array">
+      <obj_property name="ElementShortName">cdbus_dest_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_dest_data[31:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_unit/is_busy" type="logic">
       <obj_property name="ElementShortName">is_busy</obj_property>
@@ -203,5 +206,9 @@
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_unit/dbus_data_out" type="array">
       <obj_property name="ElementShortName">dbus_data_out[31:0]</obj_property>
       <obj_property name="ObjectShortName">dbus_data_out[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/FP_add_unit/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
    </wvobject>
 </wave_config>
