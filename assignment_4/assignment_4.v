@@ -58,8 +58,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire [2:0] opbus_src_b;
   
   //the wires used for the common data bus
-  //connects the execution units to the regfile and
-  //to the reservation stations
+  //connects the mux to the regfile and reservation statrions
   wire [2:0] cdbus_dest;
   wire [7:0] cdbus_dest_shift;
   wire [31:0] cdbus_data;
@@ -72,25 +71,80 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire [7:0] b_select_wire;
   wire [7:0] busy_bus;
   
-  //wires connecting the reservation station and the execution unit
-  wire [2:0] rs_ex_op_code;
-  wire [2:0] rs_ex_d_select;
-  wire [7:0] rs_ex_d_select_shift;
-  wire [31:0] rs_ex_abus_data;
-  wire [31:0] rs_ex_bbus_data;
+  //wires connecting the reservation stations to the execution units
+  //FP_ADD
+  wire [2:0] rs_ex_fp_op_code;
+  wire [2:0] rs_ex_fp_d_select;
+  wire [7:0] rs_ex_fp_d_select_shift;
+  wire [31:0] rs_ex_fp_abus_data;
+  wire [31:0] rs_ex_fp_bbus_data;
   wire rs_ex_fp_add_is_busy;
+  //FP_MULT
+  wire [2:0] rs_ex_fp_mult_op_code;
+  wire [2:0] rs_ex_fp_mult_d_select;
+  wire [7:0] rs_ex_fp_mult_d_select_shift;
+  wire [31:0] rs_ex_fp_mult_abus_data;
+  wire [31:0] rs_ex_fp_mult_bbus_data;
+  wire rs_ex_fp_mult_is_busy;
+  //INT
+  wire [2:0] rs_ex_int_op_code;
+  wire [2:0] rs_ex_int_d_select;
+  wire [7:0] rs_ex_int_d_select_shift;
+  wire [31:0] rs_ex_int_abus_data;
+  wire [31:0] rs_ex_int_bbus_data;
+  wire rs_ex_int_is_busy;
+  //LOAD
+  wire [2:0] rs_ex_ld_op_code;
+  wire [2:0] rs_ex_ld_d_select;
+  wire [7:0] rs_ex_ld_d_select_shift;
+  wire [31:0] rs_ex_ld_abus_data;
+  wire [31:0] rs_ex_ld_bbus_data;
+  wire rs_ex_ld_is_busy;
+  //STORE
+  wire [2:0] rs_ex_st_op_code;
+  wire [2:0] rs_ex_st_d_select;
+  wire [7:0] rs_ex_st_d_select_shift;
+  wire [31:0] rs_ex_st_abus_data;
+  wire [31:0] rs_ex_st_bbus_data;
+  wire rs_ex_st_is_busy;
   
-  //the reg flags for the execution units
-  reg mem_flag;
-  reg FP_add_flag;
-  reg FP_mult_flag;
-  reg int_flag;
+  //wires connecting the execution units to the mux
+  //FP_ADD
+  wire FP_add_mux_valid_data;
+  wire [2:0] FP_add_mux_d_select;
+  wire [7:0] FP_add_mux_d_select_shift;
+  wire [31:0] FP_add_mux_data;
+  wire FP_add_mux_stall;
+  //FP_MULT
+  wire FP_mult_mux_valid_data;
+  wire [2:0] FP_mult_mux_d_select;
+  wire [7:0] FP_mult_mux_d_select_shift;
+  wire [31:0] FP_mult_mux_data;
+  wire FP_mult_mux_stall;
+  //INT
+  wire int_mux_valid_data;
+  wire [2:0] int_mux_d_select;
+  wire [7:0] int_mux_d_select_shift;
+  wire [31:0] int_mux_data;
+  wire int_mux_stall;
+  //LOAD/STORE
+  wire mem_mux_valid_data;
+  wire [2:0] mem_mux_d_select;
+  wire [7:0] mem_mux_d_select_shift;
+  wire [31:0] mem_mux_data;
+  wire mem_mux_stall;
   
-  //the wires for connecting the units full flags
+  //the reg flags for the execution units, if selected for the incoming deququed instruction
+  reg mem_selected_flag;
+  reg FP_add_selected_flag;
+  reg FP_mult_selected_flag;
+  reg int_selected_flag;
+  
+  //the wires for connecting the flags if RS is full
   reg mem_full_flag;
-  wire FP_add_full_flag;
   reg FP_mult_full_flag;
   reg int_full_full_flag;
+  wire FP_add_full_flag;
   
   //the reg as the instruction queue
   //first bracket is how wide each register is
@@ -99,13 +153,15 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   reg [11:0] instruction_queue [5:0];
   reg [11:0] current_instruction;
   
-  //the fake clock
-  reg fake_clock;
-  
   //counter for the dequeue for loop
   integer i;
   
-  //the control bit for setting the high bit for if the register is high
+  //the fake clocks used as delays
+  reg fake_rs_clock;
+  wire fake_mux_clock;
+  wire fake_mux_snoop_clock;
+  
+  //the control bit for setting the high bit for the regfile if the dest reg in use
   reg [7:0] busy_select_shift;
   
   //register module instance
@@ -116,8 +172,6 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     .Dselect(cdbus_dest_shift), .dbus(cdbus_data), .validData(cdbus_valid_data),
     //outs
     .busyBus(busy_bus), .abus(abus_wire), .bbus(bbus_wire)
-    //not useds
-    
   );
   
   //reservation station instance for added
@@ -125,43 +179,60 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   reservation_station #(.BUS_LENGTH(2)) FP_add_station
   (
     //ins
-    .clk(clk), .fake_clock(fake_clock), .station_selected(FP_add_flag), .opbus_op(opbus_opcode), .opbus_dest(opbus_dest),
+    .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(FP_add_selected_flag), .opbus_op(opbus_opcode), .opbus_dest(opbus_dest),
     .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire), .bbus_in(bbus_wire), .busy_bus(busy_bus),
     .execution_unit_busy(rs_ex_fp_add_is_busy), .cdbus_dest(cdbus_dest), .cdbus_dest_shift(cdbus_dest_shift),
-    .cdbus_dest_data(cdbus_data),
+    .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data),
     //outs
-    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_add_full_flag), .d_select_out(rs_ex_d_select),
-    .d_select_out_shift(rs_ex_d_select_shift), .abus_out(rs_ex_abus_data), .bbus_out(rs_ex_bbus_data),
-    .op_code_out(rs_ex_op_code)
-    //not useds
-    
+    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_add_full_flag), .d_select_out(rs_ex_fp_d_select),
+    .d_select_out_shift(rs_ex_fp_d_select_shift), .abus_out(rs_ex_fp_abus_data), .bbus_out(rs_ex_fp_bbus_data),
+    .op_code_out(rs_ex_fp_op_code)
   );
+  
   //execution unit instance for adding
   //ID=10=FP_ADD
   execution_unit #(.CYCLE_TIME(3),.ID(2'b10)) FP_add_unit
   (
     //ins
-    .clk(clk), .op_code_in(rs_ex_op_code), .d_select_in(rs_ex_d_select), .d_select_shift_in(rs_ex_d_select_shift),
-    .abus_data_in(rs_ex_abus_data), .bbus_data_in(rs_ex_bbus_data),
+    .clk(clk), .op_code_in(rs_ex_fp_op_code), .d_select_in(rs_ex_fp_d_select), .d_select_shift_in(rs_ex_fp_d_select_shift),
+    .abus_data_in(rs_ex_fp_abus_data), .bbus_data_in(rs_ex_fp_bbus_data), .stall_by_mux(FP_add_mux_stall),
     //outs
-    .is_busy(rs_ex_fp_add_is_busy), .valid_data(cdbus_valid_data), .dbus_data_out(cdbus_data), .d_select_out(cdbus_dest),
-    .d_select_shift_out(cdbus_dest_shift)
-    //not useds
-    
+    .is_busy(rs_ex_fp_add_is_busy), .valid_data(FP_add_mux_valid_data), .dbus_data_out(FP_add_mux_data),
+    .d_select_out(FP_add_mux_d_select), .d_select_shift_out(FP_add_mux_d_select_shift), .fake_clock(fake_mux_clock)
+  );
+  
+  //execution unit instance for multing
+  
+  
+  //mux instance
+  smart_mux smux
+  (
+    //in
+    .fake_clock(fake_mux_clock), .mem_valid(mem_mux_valid_data), .FP_mult_valid(FP_mult_mux_valid_data),
+    .FP_add_valid(FP_add_mux_valid_data), .int_valid(int_mux_valid_data), .mem_d_select(mem_mux_d_select),
+    .FP_mult_d_select(FP_mult_mux_d_select), .FP_add_d_select(FP_add_mux_d_select), .int_d_select(int_mux_d_select),
+    .mem_d_select_shift(mem_mux_d_select_shift), .FP_mult_d_select_shift(FP_mult_mux_d_select_shift),
+    .FP_add_d_select_shift(FP_add_mux_d_select_shift), .int_d_select_shift(int_mux_d_select_shift), .mem_data(mem_mux_data),
+    .FP_mult_data(FP_mult_mux_data), .FP_add_data(FP_add_mux_data), .int_data(int_mux_data),
+    //out
+    .mem_stall(mem_mux_stall), .FP_mult_stall(FP_mult_mux_stall), .FP_add_stall(FP_add_mux_stall), .int_stall(int_mux_stall),
+    .cdbus_d_select(cdbus_dest), .cdbus_d_select_shift(cdbus_dest_shift), .cdbus_data(cdbus_data), .cdbus_valid_data(cdbus_valid_data),
+    .fake_mux_output_clock(fake_mux_snoop_clock)
   );
   
   initial begin
     //set all the execution flags to 0
-    mem_flag = 0;
-    FP_add_flag = 0;
-    FP_mult_flag = 0;
-    int_flag = 0;
+    mem_selected_flag = 0;
+    FP_add_selected_flag = 0;
+    FP_mult_selected_flag = 0;
+    int_selected_flag = 0;
     mem_full_flag = 0;
     //FP_add_full_flag = 0;
     FP_mult_full_flag = 0;
     int_full_full_flag = 0;
-    //set the fake clock
-    fake_clock = 0;
+    //set the fake clocks
+    fake_rs_clock = 0;
+    //fake_mux_clock = 0;
     //set the busy_select to 0
     busy_select_shift = 8'b0;
     //set the current instructin to nothing
@@ -169,19 +240,19 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     //fill the instruction queue
     instruction_queue[0] [11:0] = 12'b011_010_001_001;//add, r2, r1, r1 (r2=2)
     instruction_queue[1] [11:0] = 12'b011_011_010_001;//add, r3, r2, r1 (r3=3)
-    instruction_queue[2] [11:0] = 12'b011_011_010_001;//add, r3, r2, r1 (r3=3)
-    instruction_queue[3] [11:0] = 12'b011_011_010_001;//add, r3, r2, r1 (r3=3)
-    instruction_queue[4] [11:0] = 12'b011_011_010_001;//add, r3, r2, r1 (r3=3)
-    instruction_queue[5] [11:0] = 12'b011_011_010_001;
+    instruction_queue[2] [11:0] = 12'b011_100_001_001;//add, r4, r1, r1 (r3=2)
+    instruction_queue[3] [11:0] = 12'b011_101_001_001;//add, r5, r2, r1 (r3=2)
+    instruction_queue[4] [11:0] = 12'b000_000_000_000;//add, r3, r2, r1 (r3=3)//bad
+    instruction_queue[5] [11:0] = 12'b000_000_000_000;
   end
   
   always @(posedge clk) begin
     //decode the instruction
     //set the flags to 0
-    mem_flag = 0;
-    FP_add_flag = 0;
-    FP_mult_flag = 0;
-    int_flag = 0;
+    mem_selected_flag = 0;
+    FP_add_selected_flag = 0;
+    FP_mult_selected_flag = 0;
+    int_selected_flag = 0;
     //set the busy_select to 0. it only triggers on the posedge so it won't be an issue
     busy_select_shift = 8'b0;
     //copy the instruction to the current reg
@@ -197,31 +268,26 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     case (current_instruction[11:9])
       3'b000: begin
         //nop
-        //don't set any flags...
+        //don't select any execution units...
       end
       3'b001: begin
         //LOAD
-        /*
-        if(!mem_full_flag) begin
-          mem_flag = 1;
-        end
-        */
-        mem_flag = (mem_full_flag)? 0 : 1;
+        mem_selected_flag = (mem_full_flag)? 0 : 1;
       end
       3'b010: begin
         //STORE
-        mem_flag = (mem_full_flag)? 0 : 1;
+        mem_selected_flag = (mem_full_flag)? 0 : 1;
       end
       3'b011: begin
         //ADDF
-        FP_add_flag = (FP_add_full_flag)? 0 : 1;
+        FP_add_selected_flag = (FP_add_full_flag)? 0 : 1;
       end
       3'b100: begin
         //MULTF
-        FP_mult_flag = (FP_mult_full_flag)? 0 : 1;
+        FP_mult_selected_flag = (FP_mult_full_flag)? 0 : 1;
       end
     endcase
-    if(mem_flag||FP_add_flag||FP_mult_flag||int_flag) begin
+    if(mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag) begin
       //set the busyBus for the regfile
       //if the destination is r0, don't bother cause it's the 0 register
       busy_select_shift = (current_instruction[8:6] == 3'b0)? 8'b0 : 8'b00000001 << current_instruction[8:6];
@@ -235,13 +301,14 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
       instruction_queue[5] = 12'b0;
     end
     //invert the clock so that it #triggers the reservation station
-    fake_clock = ~fake_clock;
+    //while also giving the assigns enough time to work
+    fake_rs_clock = ~fake_rs_clock;
   end
-  assign opbus_opcode = (mem_flag|FP_add_flag|FP_mult_flag|int_flag)? current_instruction[11:9] : 3'bz;
-  assign opbus_dest = (mem_flag|FP_add_flag|FP_mult_flag|int_flag)? current_instruction[8:6] : 3'bz;
-  assign opbus_src_a = (mem_flag|FP_add_flag|FP_mult_flag|int_flag)? current_instruction[5:3] : 3'bz;
-  assign opbus_src_b = (mem_flag|FP_add_flag|FP_mult_flag|int_flag)? current_instruction[2:0] : 3'bz;
-  //assign busy_select_shift = (mem_flag|FP_add_flag|FP_mult_flag|int_flag)? 8'b00000001 << opbus_dest : 8'b0;
+  assign opbus_opcode = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[11:9] : 3'bz;
+  assign opbus_dest = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[8:6] : 3'bz;
+  assign opbus_src_a = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[5:3] : 3'bz;
+  assign opbus_src_b = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[2:0] : 3'bz;
+  //assign busy_select_shift = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? 8'b00000001 << opbus_dest : 8'b0;
 endmodule
 
 //the module for creating the reservation stations
@@ -249,8 +316,8 @@ endmodule
 module reservation_station #(parameter BUS_LENGTH = 1)
   (
     //ins
-    clk, fake_clock, station_selected, opbus_op, opbus_dest, opbus_src_a, opbus_src_b, abus_in, bbus_in, busy_bus,
-    execution_unit_busy, cdbus_dest, cdbus_dest_shift, cdbus_dest_data,
+    clk, fake_clock, fake_mux_clock, station_selected, opbus_op, opbus_dest, opbus_src_a, opbus_src_b, abus_in, bbus_in, busy_bus,
+    execution_unit_busy, cdbus_dest, cdbus_dest_shift, cdbus_dest_data, cdbus_valid,
     //outs
     a_select_out, b_select_out, d_select_out, d_select_out_shift, abus_out, bbus_out, op_code_out, station_full, trigger_exes
   );
@@ -259,6 +326,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
   //the delayed clock for triggering the alwyas block
   //it's the last thing done in the always block for the instruction dequeuing
   input fake_clock;
+  input fake_mux_clock;
   //determins if the station is selected to grab the next enqueued element
   input station_selected;
   //link to the op bus components
@@ -276,6 +344,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
   input [2:0] cdbus_dest;
   input [7:0] cdbus_dest_shift;
   input [31:0] cdbus_dest_data;
+  input cdbus_valid;
   //the selector to the regfile for which register to use in the abus
   output reg [7:0] a_select_out;
   output reg [7:0] b_select_out;
@@ -322,6 +391,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
   reg[31:0] b_update_index;
   reg a_update_index_flag;
   reg b_update_index_flag;
+  reg output_bus_touched;
   
   initial begin
     trigger_exes = 0;
@@ -339,6 +409,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
     op_code_out = 3'bz;
     station_full = 0;
     counter = 0;
+    output_bus_touched = 0;
     repeat(BUS_LENGTH+1) begin
       op_code[counter] = 3'b0;
       dest_reg[counter] = 3'b0;
@@ -400,6 +471,9 @@ module reservation_station #(parameter BUS_LENGTH = 1)
         end
       end
     end
+  end
+  
+  always @(fake_mux_clock) begin
     counter = 0;
     //use a loop to incriment the counter  for checking if data is ready
     begin:data_check_break
@@ -477,10 +551,11 @@ module reservation_station #(parameter BUS_LENGTH = 1)
         counter = counter+1;
       end
     end
-    
   end
+  
   always @(negedge clk) begin
     counter = 0;
+    output_bus_touched = 0;
     //update the values from the data index saved earlier
     if(a_update_index_flag) begin
       abus_data[a_update_index] = abus_in;
@@ -496,6 +571,7 @@ module reservation_station #(parameter BUS_LENGTH = 1)
         if(station_in_use[counter] && operation_data_a_ready[counter] && operation_data_b_ready[counter] && !execution_unit_busy) begin
           //set all the stuff and touch the output buses
           $display("station %d is in use, and operation data is ready, dequeuing for execution",counter);
+          output_bus_touched = 1;
           abus_out = abus_data[counter];
           bbus_out = bbus_data[counter];
           d_select_out = dest_reg[counter];
@@ -538,10 +614,22 @@ module reservation_station #(parameter BUS_LENGTH = 1)
           operation_data_b_ready[BUS_LENGTH] = 0;
           station_in_use[BUS_LENGTH] = 0;
           //and also set the station full flag to low
+          if(station_full) begin
+            $display("reservation station is no longer full");
+          end
           station_full = 0;
           disable data_output_break;
         end
         counter = counter+1;
+      end
+      //else close the output to stop the execution units
+      if(!output_bus_touched) begin
+        $display("no instructions ready for execution unit, closing outputs");
+        abus_out = 32'bz;
+        bbus_out = 32'bz;
+        d_select_out = 3'bz;
+        d_select_out_shift = 8'bz;
+        op_code_out = 3'bz;
       end
     end
     trigger_exes = ~trigger_exes;
@@ -559,9 +647,9 @@ ID is as follows:
 module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   (
     //in
-    clk, op_code_in, d_select_in, d_select_shift_in, abus_data_in, bbus_data_in,
+    clk, op_code_in, d_select_in, d_select_shift_in, abus_data_in, bbus_data_in, stall_by_mux,
     //out
-    is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out
+    is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out, fake_clock
   );
   //fake clock that happends at the end of the posedge reservation station
   //^not true
@@ -572,6 +660,8 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   input [7:0] d_select_shift_in;
   input [31:0] abus_data_in;
   input [31:0] bbus_data_in;
+  //the input from the mux if there's two or more requests for the cdb and one execution needs to stall
+  input stall_by_mux;
   //flag to determine if the execution unit is busy
   output reg is_busy;
   //flag for the regfile to verify it only accepts the final value at the correct time
@@ -580,8 +670,10 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   output reg [31:0] dbus_data_out;
   output reg [2:0] d_select_out;
   output reg [7:0] d_select_shift_out;
+  output reg fake_clock;
   //counter to use for determining the "cycle" of execution
   reg [31:0] counter;
+  reg [31:0] counter_backup;
   
   initial begin
     //set all the stuffs to 0
@@ -591,61 +683,83 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     d_select_out = 0;
     d_select_shift_out = 0;
     counter = 0;
+    fake_clock = 0;
   end
   
   always @(posedge clk) begin
     valid_data = 0;
-    if(op_code_in > 0) begin
+    if(is_busy) begin
       counter = counter + 1;
-      if(!is_busy)begin
-        //set the unit to busy
-        is_busy = 1;
-        //set the index outputs from the inputs
-        d_select_out = d_select_in;
-        d_select_shift_out = d_select_shift_in;
-        case(ID)
-          2'b00: begin
-            //integer execution unit
-            //nothing yet...
-          end
-          2'b01: begin
-            //FP multiplier unit
-            case(op_code_in)
-              3'b100: begin
-                //multing floating point
-                dbus_data_out = abus_data_in * bbus_data_in;
-              end
-            endcase
-          end
-          2'b10: begin
-            //FP adder unit
-            case(op_code_in)
-              3'b011: begin
-                //add floating point
-                dbus_data_out = abus_data_in + bbus_data_in;
-              end
-            endcase
-          end
-        endcase
-      end
+      $display("execution unit %d is busy, counter=%d",ID, counter);
     end
-    if(counter >= CYCLE_TIME) begin
+    if((!is_busy) && (op_code_in > 0)) begin
+      $display("execution unit %d is not busy, accepts new instruction.",ID);
+      //set the unit to busy
+      is_busy = 1;
+      //set the index outputs from the inputs
+      d_select_out = d_select_in;
+      d_select_shift_out = d_select_shift_in;
+      case(ID)
+        2'b00: begin
+          //integer execution unit
+          //nothing yet...
+        end
+        2'b01: begin
+          //FP multiplier unit
+          case(op_code_in)
+            3'b100: begin
+              //multing floating point
+              dbus_data_out = abus_data_in * bbus_data_in;
+            end
+          endcase
+        end
+        2'b10: begin
+          //FP adder unit
+          case(op_code_in)
+            3'b011: begin
+              //add floating point
+              dbus_data_out = abus_data_in + bbus_data_in;
+            end
+          endcase
+        end
+      endcase
+    end
+    //if it equals, the exeuction unit is done
+    //however, the mux may just have gotten two inputs
+    if(counter == CYCLE_TIME) begin
+      $display("execution complete for execution unit %d, valid data is high",ID);
       //reset the counter and the busy flag
       is_busy = 0;
+      counter_backup = counter;
       counter = 0;
       //set the write data flag to high
       //the reg will pick it up at the neg edge
       valid_data = 1;
     end
+    //hear means that it was stalled by the mux not being ready
+    else if(counter > CYCLE_TIME) begin
+      //valid data needs to stay true for mux to work...
+      $display("(posedge) execution unit %d stalled by mux, setting valid back to true", ID);
+      valid_data = 1;
+    end
+    fake_clock = ~fake_clock;
   end
   
-  //TODO:
-  //try making always at posedge of mux busy to set exe busy
-endmodule
-
-//the module for dealing with the memory
-module memory_unit();
+  always @(posedge stall_by_mux) begin
+    $display("posedge stall_by_mux detected for execution unit %d",ID);
+    is_busy = 1;
+    counter = counter_backup;
+  end
   
+  always @(negedge stall_by_mux) begin
+    if(counter > CYCLE_TIME) begin
+      $display("negedge stall_by_mux detected for execution unit %d with counter > CYCLE_TIME true",ID);
+      //mux just put it's data on the bus, can set busy to false
+      is_busy = 0;
+      counter = 0;
+      counter_backup = 0;
+    end
+  end
 endmodule
 
 //the mux to use as the bit arbitor
@@ -656,8 +770,8 @@ module smart_mux
   int_d_select, mem_d_select_shift, FP_mult_d_select_shift, FP_add_d_select_shift, int_d_select_shift, mem_data,
   FP_mult_data, FP_add_data, int_data,
   //out
-  mux_busy, mem_data_accepted, FP_mult_data_accepted, FP_add_data_accepted, int_data_accepted, cdbus_d_select,
-  cdbus_d_select_shift, cdbus_data
+  mem_stall, FP_mult_stall, FP_add_stall, int_stall, cdbus_d_select, cdbus_d_select_shift, cdbus_data, cdbus_valid_data,
+  fake_mux_output_clock
 );
   //the clock that is set at the end of the fp mult execution unit in hopes of getting a delay
   input fake_clock;
@@ -667,34 +781,129 @@ module smart_mux
   input FP_add_valid;
   input int_valid;
   //the 4 d_select values
-  input mem_d_select;
-  input FP_mult_d_select;
-  input FP_add_d_select;
-  input int_d_select;
+  input [2:0] mem_d_select;
+  input [2:0] FP_mult_d_select;
+  input [2:0] FP_add_d_select;
+  input [2:0] int_d_select;
   //the 4 d_select_shift values
-  input mem_d_select_shift;
-  input FP_mult_d_select_shift;
-  input FP_add_d_select_shift;
-  input int_d_select_shift;
+  input [7:0] mem_d_select_shift;
+  input [7:0] FP_mult_d_select_shift;
+  input [7:0] FP_add_d_select_shift;
+  input [7:0] int_d_select_shift;
   //the 4 data values
-  input mem_data;
-  input FP_mult_data
-  input FP_add_data
-  input int_data;
-  //output to trigger if the mux is busy with two or more inputs
-  output reg mux_busy;
+  input [31:0] mem_data;
+  input [31:0] FP_mult_data;
+  input [31:0] FP_add_data;
+  input [31:0] int_data;
   //output flags for the execution units if their data was accepted
-  output reg mem_data_accepted;
-  output reg FP_mult_data_accepted;
-  output reg FP_add_data_accepted;
-  output reg int_data_accepted;
+  output reg mem_stall;
+  output reg FP_mult_stall;
+  output reg FP_add_stall;
+  output reg int_stall;
   //the output for the common data bus
   output reg [2:0] cdbus_d_select;
   output reg [7:0] cdbus_d_select_shift;
   output reg [31:0] cdbus_data;
+  output reg cdbus_valid_data;
+  output reg fake_mux_output_clock;
   
-  //always at fake clock set the values
-  //if multiple inputs accept one of them and only set that one to high
+  //reg to count how many inputs we just got
+  reg [31:0] how_many_inputs;
+  
+  initial begin
+    how_many_inputs = 0;
+    mem_stall = 0;
+    FP_mult_stall = 0;
+    FP_add_stall = 0;
+    int_stall = 0;
+    cdbus_valid_data = 0;
+    fake_mux_output_clock = 0;
+  end
+  
+  always @(fake_clock) begin
+    how_many_inputs = 0;
+    //check how many inputs we actually have
+    if(mem_valid)
+      how_many_inputs = how_many_inputs +1;
+    if(FP_mult_valid)
+      how_many_inputs = how_many_inputs +1;
+    if(FP_add_valid)
+      how_many_inputs = how_many_inputs +1;
+    if(int_valid)
+      how_many_inputs = how_many_inputs +1;
+    if(how_many_inputs == 0) begin
+      $display("mux says 0 inputs, nothing to do");
+      cdbus_valid_data = 0;
+      cdbus_d_select = 3'bz;
+      cdbus_d_select_shift = 8'bz;
+      cdbus_data = 32'bz;
+      mem_stall = 0;
+      FP_mult_stall = 0;
+      FP_add_stall = 0;
+      int_stall = 0;
+    end
+    else if(how_many_inputs == 1) begin
+      $display("mux says 1 inputs, set cdbus, no stalling required");
+      mem_stall = 0;
+      FP_mult_stall = 0;
+      FP_add_stall = 0;
+      int_stall = 0;
+      cdbus_valid_data = 1;
+      //only one of them has valid data, just find it and put it on the bus
+      if(FP_mult_valid) begin
+        cdbus_d_select = FP_mult_d_select;
+        cdbus_d_select_shift = FP_mult_d_select_shift;
+        cdbus_data = FP_mult_data;
+      end
+      else if(FP_add_valid) begin
+        cdbus_d_select = FP_add_d_select;
+        cdbus_d_select_shift = FP_add_d_select_shift;
+        cdbus_data = FP_add_data;
+      end
+      else if(mem_valid) begin
+        cdbus_d_select = mem_d_select;
+        cdbus_d_select_shift = mem_d_select_shift;
+        cdbus_data = mem_data;
+      end
+      else if(int_valid) begin
+        cdbus_d_select = int_d_select;
+        cdbus_d_select_shift = int_d_select_shift;
+        cdbus_data = int_data;
+      end
+    end
+    //go in the order of the if else blocks
+    else if(how_many_inputs > 1) begin
+      $display("mux says %d inputs, set cdbus, stalling required", how_many_inputs);
+      $display("before arbitration, FP_mult_valid=%b, FP_add_valid=%b, mem_valid=%b",FP_mult_valid,FP_add_valid,mem_valid);
+      $display("before arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", FP_mult_stall, FP_add_stall, mem_stall,int_stall);
+      if(FP_mult_valid) begin
+        cdbus_d_select = FP_mult_d_select;
+        cdbus_d_select_shift = FP_mult_d_select_shift;
+        cdbus_data = FP_mult_data;
+        mem_stall = mem_valid? 1 : 0;
+        FP_add_stall = FP_add_valid? 1:0;
+        int_stall = int_valid? 1:0;
+      end
+      else if(FP_add_valid) begin
+        cdbus_d_select = FP_add_d_select;
+        cdbus_d_select_shift = FP_add_d_select_shift;
+        cdbus_data = FP_add_data;
+        mem_stall = mem_valid? 1 : 0;
+        FP_mult_stall = FP_mult_valid? 1:0;
+        int_stall = int_valid? 1:0;
+      end
+      else if(mem_valid) begin
+        cdbus_d_select = mem_d_select;
+        cdbus_d_select_shift = mem_d_select_shift;
+        cdbus_data = mem_data;
+        FP_mult_stall = FP_mult_valid? 1 : 0;
+        FP_add_stall = FP_add_valid? 1:0;
+        int_stall = int_valid? 1:0;
+      end
+      $display("after arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", FP_mult_stall, FP_add_stall, mem_stall,int_stall);
+    end
+    fake_mux_output_clock = ~fake_mux_output_clock;
+  end
 endmodule
 
 //the reg file

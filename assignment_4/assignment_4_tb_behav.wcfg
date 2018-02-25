@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="93480695fs"></ZoomStartTime>
-      <ZoomEndTime time="143303861fs"></ZoomEndTime>
-      <Cursor1Time time="135000000fs"></Cursor1Time>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="68471266fs"></ZoomEndTime>
+      <Cursor1Time time="300000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="198"></NameColumnWidth>
-      <ValueColumnWidth column_width="73"></ValueColumnWidth>
+      <ValueColumnWidth column_width="69"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="42" />
+   <WVObjectSize size="50" />
    <wvobject fp_name="/assignment_4_tb/dut/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -43,10 +43,6 @@
       <obj_property name="ElementShortName">busySelect[7:0]</obj_property>
       <obj_property name="ObjectShortName">busySelect[7:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_flag" type="logic">
-      <obj_property name="ElementShortName">FP_add_flag</obj_property>
-      <obj_property name="ObjectShortName">FP_add_flag</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/station_selected" type="logic">
       <obj_property name="ElementShortName">station_selected</obj_property>
@@ -77,31 +73,31 @@
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/station_in_use" type="array">
-      <obj_property name="ElementShortName">station_in_use[5:0]</obj_property>
-      <obj_property name="ObjectShortName">station_in_use[5:0]</obj_property>
+      <obj_property name="ElementShortName">station_in_use[2:0]</obj_property>
+      <obj_property name="ObjectShortName">station_in_use[2:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/op_code" type="array">
-      <obj_property name="ElementShortName">op_code[5:0][2:0]</obj_property>
-      <obj_property name="ObjectShortName">op_code[5:0][2:0]</obj_property>
+      <obj_property name="ElementShortName">op_code[2:0][2:0]</obj_property>
+      <obj_property name="ObjectShortName">op_code[2:0][2:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/src_a" type="array">
-      <obj_property name="ElementShortName">src_a[5:0][2:0]</obj_property>
-      <obj_property name="ObjectShortName">src_a[5:0][2:0]</obj_property>
+      <obj_property name="ElementShortName">src_a[2:0][2:0]</obj_property>
+      <obj_property name="ObjectShortName">src_a[2:0][2:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/src_b" type="array">
-      <obj_property name="ElementShortName">src_b[5:0][2:0]</obj_property>
-      <obj_property name="ObjectShortName">src_b[5:0][2:0]</obj_property>
+      <obj_property name="ElementShortName">src_b[2:0][2:0]</obj_property>
+      <obj_property name="ObjectShortName">src_b[2:0][2:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/src_a_shift" type="array">
-      <obj_property name="ElementShortName">src_a_shift[5:0][7:0]</obj_property>
-      <obj_property name="ObjectShortName">src_a_shift[5:0][7:0]</obj_property>
+      <obj_property name="ElementShortName">src_a_shift[2:0][7:0]</obj_property>
+      <obj_property name="ObjectShortName">src_a_shift[2:0][7:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/src_b_shift" type="array">
-      <obj_property name="ElementShortName">src_b_shift[5:0][7:0]</obj_property>
-      <obj_property name="ObjectShortName">src_b_shift[5:0][7:0]</obj_property>
+      <obj_property name="ElementShortName">src_b_shift[2:0][7:0]</obj_property>
+      <obj_property name="ObjectShortName">src_b_shift[2:0][7:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/a_select_out" type="array">
@@ -115,18 +111,18 @@
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/operation_data_a_ready" type="array">
-      <obj_property name="ElementShortName">operation_data_a_ready[5:0]</obj_property>
-      <obj_property name="ObjectShortName">operation_data_a_ready[5:0]</obj_property>
+      <obj_property name="ElementShortName">operation_data_a_ready[2:0]</obj_property>
+      <obj_property name="ObjectShortName">operation_data_a_ready[2:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/operation_data_b_ready" type="array">
-      <obj_property name="ElementShortName">operation_data_b_ready[5:0]</obj_property>
-      <obj_property name="ObjectShortName">operation_data_b_ready[5:0]</obj_property>
+      <obj_property name="ElementShortName">operation_data_b_ready[2:0]</obj_property>
+      <obj_property name="ObjectShortName">operation_data_b_ready[2:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/bbus_data" type="array">
-      <obj_property name="ElementShortName">bbus_data[5:0][31:0]</obj_property>
-      <obj_property name="ObjectShortName">bbus_data[5:0][31:0]</obj_property>
+      <obj_property name="ElementShortName">bbus_data[2:0][31:0]</obj_property>
+      <obj_property name="ObjectShortName">bbus_data[2:0][31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/abus_out" type="array">
@@ -174,14 +170,6 @@
       <obj_property name="ElementShortName">bbus_data_in[31:0]</obj_property>
       <obj_property name="ObjectShortName">bbus_data_in[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/cdbus_dest" type="array">
-      <obj_property name="ElementShortName">cdbus_dest[2:0]</obj_property>
-      <obj_property name="ObjectShortName">cdbus_dest[2:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/cdbus_dest_data" type="array">
-      <obj_property name="ElementShortName">cdbus_dest_data[31:0]</obj_property>
-      <obj_property name="ObjectShortName">cdbus_dest_data[31:0]</obj_property>
-   </wvobject>
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_unit/is_busy" type="logic">
       <obj_property name="ElementShortName">is_busy</obj_property>
       <obj_property name="ObjectShortName">is_busy</obj_property>
@@ -210,5 +198,49 @@
    <wvobject fp_name="/assignment_4_tb/dut/FP_add_unit/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/smux/fake_clock" type="logic">
+      <obj_property name="ElementShortName">fake_clock</obj_property>
+      <obj_property name="ObjectShortName">fake_clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/smux/FP_add_valid" type="logic">
+      <obj_property name="ElementShortName">FP_add_valid</obj_property>
+      <obj_property name="ObjectShortName">FP_add_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/smux/FP_add_d_select" type="logic">
+      <obj_property name="ElementShortName">FP_add_d_select</obj_property>
+      <obj_property name="ObjectShortName">FP_add_d_select</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/smux/FP_add_d_select_shift" type="logic">
+      <obj_property name="ElementShortName">FP_add_d_select_shift</obj_property>
+      <obj_property name="ObjectShortName">FP_add_d_select_shift</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/smux/FP_add_data" type="logic">
+      <obj_property name="ElementShortName">FP_add_data</obj_property>
+      <obj_property name="ObjectShortName">FP_add_data</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/smux/FP_add_stall" type="logic">
+      <obj_property name="ElementShortName">FP_add_stall</obj_property>
+      <obj_property name="ObjectShortName">FP_add_stall</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/smux/cdbus_valid_data" type="logic">
+      <obj_property name="ElementShortName">cdbus_valid_data</obj_property>
+      <obj_property name="ObjectShortName">cdbus_valid_data</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/smux/cdbus_data" type="array">
+      <obj_property name="ElementShortName">cdbus_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_data[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/smux/cdbus_d_select_shift" type="array">
+      <obj_property name="ElementShortName">cdbus_d_select_shift[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_d_select_shift[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/smux/cdbus_d_select" type="array">
+      <obj_property name="ElementShortName">cdbus_d_select[2:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_d_select[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/FP_add_mux_d_select" type="array">
+      <obj_property name="ElementShortName">FP_add_mux_d_select[2:0]</obj_property>
+      <obj_property name="ObjectShortName">FP_add_mux_d_select[2:0]</obj_property>
    </wvobject>
 </wave_config>
