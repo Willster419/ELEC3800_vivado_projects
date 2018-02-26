@@ -25,6 +25,13 @@ ADDF  011
 MULTF 100
 */
 
+/*
+ID is as follows:
+00 = integer unit
+01 = FP multiplier unit
+10 = FP adder unit
+11 = load/store unit
+*/
 
 module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //NOT YET USED//////////////////////////////////////////////////
@@ -99,14 +106,15 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire [7:0] rs_ex_ld_d_select_shift;
   wire [31:0] rs_ex_ld_abus_data;
   wire [31:0] rs_ex_ld_bbus_data;
-  wire rs_ex_ld_is_busy;
+  //wire rs_ex_ld_is_busy;
   //STORE
   wire [2:0] rs_ex_st_op_code;
   wire [2:0] rs_ex_st_d_select;
   wire [7:0] rs_ex_st_d_select_shift;
   wire [31:0] rs_ex_st_abus_data;
   wire [31:0] rs_ex_st_bbus_data;
-  wire rs_ex_st_is_busy;
+  //wire rs_ex_st_is_busy;
+  wire rs_ex_ld_st_is_busy;
   
   //wires connecting the execution units to the mux
   //FP_ADD
@@ -135,16 +143,40 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire mem_mux_stall;
   
   //the reg flags for the execution units, if selected for the incoming deququed instruction
-  reg mem_selected_flag;
+  reg load_selected_flag;
+  reg store_selected_flag;
   reg FP_add_selected_flag;
   reg FP_mult_selected_flag;
   reg int_selected_flag;
   
   //the wires for connecting the flags if RS is full
-  reg mem_full_flag;
+  wire load_full_flag;
+  wire store_full_flag;
   wire FP_mult_full_flag;
   reg int_full_full_flag;
   wire FP_add_full_flag;
+  
+  //the wires for connecting the valid input flags of the RS mem/load to the mux
+  wire RS_load_valid_data;
+  wire RS_store_valid_data;
+  
+  //wires for connecting the additional memory components
+  wire [2:0] RS_load_mem_ofset;//b select
+  wire [2:0] RS_store_mem_ofset;//b select
+  wire [31:0] RS_load_address;//a data
+  wire [31:0] RS_store_address;//a data
+  
+  wire RS_store_mux_stall;
+  wire [31:0] RS_store_data;//dbus data
+  wire [2:0] RS_load_dest;
+  wire [7:0] RS_load_dest_shift;
+  
+  wire [2:0] mem_ex_d_select;
+  wire [7:0] mem_ex_d_select_shift;
+  wire [2:0] mem_ex_b_offset;
+  wire [31:0] mem_ex_dbus_data;
+  wire [31:0] mem_ex_abus_address;
+  wire [2:0] mem_ex_op_code;
   
   //the reg as the instruction queue
   //first bracket is how wide each register is
@@ -153,6 +185,13 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   reg [11:0] instruction_queue [5:0];
   reg [11:0] current_instruction;
   
+  //the memory interfacing
+  wire [31:0] memory_address;
+  reg [31:0] memory [3:0];
+  wire [1:0] load_store;
+  wire [31:0] store_data;
+  reg [31:0] load_data;
+  
   //counter for the dequeue for loop
   integer i;
   
@@ -160,6 +199,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   reg fake_rs_clock;
   wire fake_mux_clock;
   wire fake_mux_snoop_clock;
+  wire fake_meme_RS_mux_clock;
   
   //the control bit for setting the high bit for the regfile if the dest reg in use
   reg [7:0] busy_select_shift;
@@ -206,6 +246,65 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     .op_code_out(rs_ex_fp_mult_op_code)
   );
   
+  //reservation station instance for load
+  //setting BUS_LENGTH to 2 means it makes 3 of them, indexed 0-2
+  //ID=011=ST
+  reservation_station #(.BUS_LENGTH(2),.ID(3'b011)) load_station
+  (
+    //ins
+    .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(store_selected_flag),
+    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire),
+    .bbus_in(bbus_wire), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_ld_st_is_busy), .cdbus_dest(cdbus_dest),
+    .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data), .store_mux_stall(RS_store_mux_stall),
+    //outs
+    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(store_full_flag), .d_select_out(rs_ex_st_d_select),
+    .d_select_out_shift(rs_ex_st_d_select_shift), .abus_out(RS_store_address), .bbus_out(rs_ex_st_bbus_data),
+    .op_code_out(rs_ex_st_op_code), .memory_offset_out(RS_store_mem_ofset), .valid_data(RS_store_valid_data)
+  );
+  
+  //reservation station instance for store
+  //setting BUS_LENGTH to 2 means it makes 3 of them, indexed 0-2
+  //ID=100=LD
+  reservation_station #(.BUS_LENGTH(2),.ID(3'b100)) store_station
+  (
+    //ins
+    .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(load_selected_flag),
+    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire),
+    .bbus_in(bbus_wire), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_ld_st_is_busy), .cdbus_dest(cdbus_dest),
+    .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data),
+    //outs
+    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(load_full_flag), .d_select_out(RS_load_dest),
+    .d_select_out_shift(RS_load_dest_shift), .abus_out(RS_load_address), .bbus_out(rs_ex_ld_bbus_data),
+    .op_code_out(rs_ex_ld_op_code), .trigger_exes(fake_meme_RS_mux_clock), .memory_offset_out(RS_load_mem_ofset),
+    .valid_data(RS_load_valid_data)
+  );
+  
+  //mux instance for joining the two reservation stations
+  partly_smart_mux psmux
+(
+  //in
+  .fake_clock(fake_meme_RS_mux_clock), .load_d_select(RS_load_dest), .load_d_select_shift(RS_load_dest_shift),
+  .load_address(RS_load_address), .load_offset(RS_load_mem_ofset), .store_dbus_data(RS_store_data), .store_address(RS_store_address),
+  .store_offset(RS_store_mem_ofset), .valid_load_data(RS_load_valid_data), .valid_store_data(RS_store_valid_data),
+  .load_op_code(rs_ex_ld_op_code), .store_op_code(rs_ex_st_op_code), .execution_unit_stall(rs_ex_ld_st_is_busy), .stall_by_mux(mem_mux_stall),
+  //out
+  .store_stall(RS_store_mux_stall), .exec_d_select(mem_ex_d_select), .exec_d_select_shift(mem_ex_d_select_shift),
+  .exec_b_offset(mem_ex_b_offset), .exec_dbus_data(mem_ex_dbus_data), .exec_abus_address(mem_ex_abus_address), .exec_op_code(mem_ex_op_code)
+);
+  
+  //execution unit instance for loading/storing
+  //ID=11=LD/ST
+  execution_unit #(.CYCLE_TIME(3),.ID(2'b10)) load_store_unit
+  (
+    //ins
+    .clk(clk), .op_code_in(mem_ex_op_code), .d_select_in(mem_ex_d_select), .d_select_shift_in(mem_ex_d_select_shift),
+    .abus_data_in(mem_ex_abus_address), .stall_by_mux(mem_mux_stall), .offset_in(mem_ex_b_offset), .memory_in(load_data),
+    .store_dbus_data_in(mem_ex_dbus_data),
+    //outs
+    .is_busy(rs_ex_ld_st_is_busy), .valid_data(mem_mux_valid_data), .dbus_data_out(mem_mux_data),
+    .d_select_out(mem_mux_d_select), .d_select_shift_out(mem_mux_d_select_shift), .memory_address(memory_address), .memory_out(store_data)
+  );
+  
   //execution unit instance for adding
   //ID=10=FP_ADD
   execution_unit #(.CYCLE_TIME(3),.ID(2'b10)) FP_add_unit
@@ -248,11 +347,12 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   
   initial begin
     //set all the execution flags to 0
-    mem_selected_flag = 0;
+    store_selected_flag = 0;
+    load_selected_flag = 0;
     FP_add_selected_flag = 0;
     FP_mult_selected_flag = 0;
     int_selected_flag = 0;
-    mem_full_flag = 0;
+    //mem_full_flag = 0;
     //FP_add_full_flag = 0;
     //FP_mult_full_flag = 0;
     int_full_full_flag = 0;
@@ -263,19 +363,26 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     busy_select_shift = 8'b0;
     //set the current instructin to nothing
     current_instruction = 12'b0;
+    load_data = 32'bz;
     //fill the instruction queue
     instruction_queue[0] [11:0] = 12'b100_100_001_001;//mult, r4, r1, r1 (r4=1)
-    instruction_queue[1] [11:0] = 12'b001_011_001_001;//load, r3, r1,  0 (null)
+    instruction_queue[1] [11:0] = 12'b001_011_001_000;//load, r3, r1,  0 (null)
     instruction_queue[2] [11:0] = 12'b011_010_001_001;//add,  r2, r1, r1 (r2=2)
-    instruction_queue[3] [11:0] = 12'b011_101_001_001;//add,  r5, r1, r1 (r2=2)
-    instruction_queue[4] [11:0] = 12'b100_110_001_001;//mult, r6, r1, r1 (r4=1)
+    instruction_queue[3] [11:0] = 12'b011_101_001_001;//add,  r5, r1, r1 (r5=2)
+    instruction_queue[4] [11:0] = 12'b100_110_001_001;//mult, r6, r1, r1 (r6=1)
     instruction_queue[5] [11:0] = 12'b000_000_000_000;
+    //memory pre-load
+    memory[0] [31:0] = 32'hDEADBEEF;
+    memory[1] [31:0] = 32'b0;
+    memory[2] [31:0] = 32'b0;//will be stored here
+    memory[3] [31:0] = 32'b0;
   end
   
   always @(posedge clk) begin
     //decode the instruction
     //set the flags to 0
-    mem_selected_flag = 0;
+    store_selected_flag = 0;
+    load_selected_flag = 0;
     FP_add_selected_flag = 0;
     FP_mult_selected_flag = 0;
     int_selected_flag = 0;
@@ -298,11 +405,11 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
       end
       3'b001: begin
         //LOAD
-        mem_selected_flag = (mem_full_flag)? 0 : 1;
+        load_selected_flag = (load_full_flag)? 0 : 1;
       end
       3'b010: begin
         //STORE
-        mem_selected_flag = (mem_full_flag)? 0 : 1;
+        store_selected_flag = (store_full_flag)? 0 : 1;
       end
       3'b011: begin
         //ADDF
@@ -313,7 +420,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
         FP_mult_selected_flag = (FP_mult_full_flag)? 0 : 1;
       end
     endcase
-    if(mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag) begin
+    if(store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag) begin
       //set the busyBus for the regfile
       //if the destination is r0, don't bother cause it's the 0 register
       busy_select_shift = (current_instruction[8:6] == 3'b0)? 8'b0 : 8'b00000001 << current_instruction[8:6];
@@ -330,10 +437,29 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     //while also giving the assigns enough time to work
     fake_rs_clock = ~fake_rs_clock;
   end
-  assign opbus_opcode = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[11:9] : 3'bz;
-  assign opbus_dest = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[8:6] : 3'bz;
-  assign opbus_src_a = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[5:3] : 3'bz;
-  assign opbus_src_b = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[2:0] : 3'bz;
+  
+  //memory address updating block
+  always @(memory_address) begin
+    //filter out all the z and x
+    if((memory_address > 0) && (load_store > 2'b00)) begin
+      load_data = 32'bz;
+      case(load_store)
+        2'b01: begin
+          //load from memory
+          load_data = memory[memory_address];
+        end
+        2'b10: begin
+          //store to memory
+          memory[memory_address] = store_data;
+        end
+      endcase
+    end
+  end
+  
+  assign opbus_opcode = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[11:9] : 3'bz;
+  assign opbus_dest = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[8:6] : 3'bz;
+  assign opbus_src_a = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[5:3] : 3'bz;
+  assign opbus_src_b = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[2:0] : 3'bz;
   //assign busy_select_shift = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? 8'b00000001 << opbus_dest : 8'b0;
 endmodule
 
@@ -343,9 +469,10 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   (
     //ins
     clk, fake_clock, fake_mux_clock, station_selected, opbus_op, opbus_dest, opbus_src_a, opbus_src_b, abus_in, bbus_in, busy_bus,
-    execution_unit_busy, cdbus_dest, cdbus_dest_shift, cdbus_dest_data, cdbus_valid,
+    execution_unit_busy, cdbus_dest, cdbus_dest_shift, cdbus_dest_data, cdbus_valid, store_mux_stall,
     //outs
-    a_select_out, b_select_out, d_select_out, d_select_out_shift, abus_out, bbus_out, op_code_out, station_full, trigger_exes
+    a_select_out, b_select_out, d_select_out, d_select_out_shift, abus_out, bbus_out, op_code_out, station_full, trigger_exes,
+    memory_offset_out, valid_data
   );
   //the regular good'ol clock
   input clk;
@@ -371,6 +498,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   input [7:0] cdbus_dest_shift;
   input [31:0] cdbus_dest_data;
   input cdbus_valid;
+  input store_mux_stall;
   //the selector to the regfile for which register to use in the abus
   output reg [7:0] a_select_out;
   output reg [7:0] b_select_out;
@@ -386,6 +514,9 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   //output to trigger the execution, happends at the end of the posedge block here
   //so it acts as a dealy
   output reg trigger_exes;
+  //the offset for load and store (actually b_src)
+  output reg [2:0] memory_offset_out;
+  output reg valid_data;
   //INFO: it may be possible to later do this as a module array
   //array of busses acting as the queue
   //first bracket is how wide each register is
@@ -436,6 +567,8 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
     station_full = 0;
     counter = 0;
     output_bus_touched = 0;
+    memory_offset_out = 3'bz;
+    valid_data = 0;
     repeat(BUS_LENGTH+1) begin
       op_code[counter] = 3'b0;
       dest_reg[counter] = 3'b0;
@@ -544,35 +677,77 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
               a_update_index_flag = 1;
             end
           end
-          if(!operation_data_b_ready[counter]) begin
-            $display("RS ID=%d, data for b (regsiter %d) of station %d is not ready", ID, src_b[counter], counter);
-            //if the snopped data is relavent to this reservation station
-            if(cdbus_dest == src_b[counter]) begin
-              $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source b at station %d ", ID, src_b[counter], counter);
-              bbus_data[counter] = cdbus_dest_data;
-              operation_data_b_ready[counter]=1;
-              if(counter > 0) begin: WAW_check_break_b
-                counter3 = counter-1;
-                repeat(counter) begin
-                  if(dest_reg[counter3] == src_b[counter])begin
-                    $display("RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
-                    operation_data_b_ready[counter]=0;
+          //loads do not need this, stores need d,
+          case(op_code[counter])
+            3'b001: begin
+              //do nothing
+              
+            end
+            3'b010: begin
+              //check it for d
+              if(!operation_data_b_ready[counter]) begin
+                $display("RS ID=%d, store data for d (regsiter %d) of station %d is not ready", ID, dest_reg[counter], counter);
+                //if the snopped data is relavent to this reservation station
+                if(cdbus_dest == dest_reg[counter]) begin
+                  $display("RS ID=%d, cdbus says data is relavent (destination register %d) for load source d at station %d ", ID, dest_reg[counter], counter);
+                  bbus_data[counter] = cdbus_dest_data;
+                  operation_data_b_ready[counter]=1;
+                  if(counter > 0) begin: WAW_check_break_b_store
+                    counter3 = counter-1;
+                    repeat(counter) begin
+                      if(dest_reg[counter3] == dest_reg[counter])begin
+                        $display("RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
+                        operation_data_b_ready[counter]=0;
+                      end
+                      counter3 = counter3-1;
+                    end
                   end
-                  counter3 = counter3-1;
+                end
+                else if(!busy_bus[dest_reg[counter]]) begin
+                  $display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, dest_reg[counter], counter);
+                  //it is ready, set the output address of a
+                  //it will trigger the wire to put the value at the reg index onto the abus
+                  b_select_out = dest_reg_shift[counter];
+                  b_update_index = counter;
+                  //bbus_data[counter] = bbus_in;//don't do this until the posedge part
+                  operation_data_b_ready[counter]=1;
+                  b_update_index_flag = 1;
                 end
               end
             end
-            else if(!busy_bus[src_b[counter]]) begin
-              $display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, src_b[counter], counter);
-              //it is ready, set the output address of a
-              //it will trigger the wire to put the value at the reg index onto the abus
-              b_select_out = src_b_shift[counter];
-              b_update_index = counter;
-              //bbus_data[counter] = bbus_in;//don't do this until the posedge part
-              operation_data_b_ready[counter]=1;
-              b_update_index_flag = 1;
+            default: begin
+              if(!operation_data_b_ready[counter]) begin
+                $display("RS ID=%d, data for b (regsiter %d) of station %d is not ready", ID, src_b[counter], counter);
+                //if the snopped data is relavent to this reservation station
+                if(cdbus_dest == src_b[counter]) begin
+                  $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source b at station %d ", ID, src_b[counter], counter);
+                  bbus_data[counter] = cdbus_dest_data;
+                  operation_data_b_ready[counter]=1;
+                  if(counter > 0) begin: WAW_check_break_b
+                    counter3 = counter-1;
+                    repeat(counter) begin
+                      if(dest_reg[counter3] == src_b[counter])begin
+                        $display("RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
+                        operation_data_b_ready[counter]=0;
+                      end
+                      counter3 = counter3-1;
+                    end
+                  end
+                end
+                else if(!busy_bus[src_b[counter]]) begin
+                  $display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, src_b[counter], counter);
+                  //it is ready, set the output address of a
+                  //it will trigger the wire to put the value at the reg index onto the abus
+                  b_select_out = src_b_shift[counter];
+                  b_update_index = counter;
+                  //bbus_data[counter] = bbus_in;//don't do this until the posedge part
+                  operation_data_b_ready[counter]=1;
+                  b_update_index_flag = 1;
+                end
+              end
             end
-          end
+          endcase
+          
         end
         counter = counter+1;
       end
@@ -582,6 +757,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   always @(negedge clk) begin
     counter = 0;
     output_bus_touched = 0;
+    valid_data = 0;
     //update the values from the data index saved earlier
     if(a_update_index_flag) begin
       abus_data[a_update_index] = abus_in;
@@ -595,14 +771,21 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       //only touch the output bus if you have to!
       repeat(BUS_LENGTH+1) begin:data_output_continue
         if(station_in_use[counter] && operation_data_a_ready[counter] && operation_data_b_ready[counter] && !execution_unit_busy) begin
+          if((ID==3'b010) && (store_mux_stall))begin
+            $display("RS ID=%d, stalled due to waiting on mux", ID);
+            valid_data = 1;
+            disable data_output_break;
+          end
           //set all the stuff and touch the output buses
           $display("RS ID=%d, station %d is in use, and operation data is ready, dequeuing for execution", ID,counter);
           output_bus_touched = 1;
+          valid_data = 1;
           abus_out = abus_data[counter];
           bbus_out = bbus_data[counter];
           d_select_out = dest_reg[counter];
           d_select_out_shift = dest_reg_shift[counter];
           op_code_out = op_code[counter];
+          memory_offset_out = src_b[counter];
           //then shift all the values down in the queue
           /*
             example: if this is index 1 and it is ready
@@ -650,12 +833,18 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       end
       //else close the output to stop the execution units
       if(!output_bus_touched) begin
-        $display("RS ID=%d, no instructions ready for execution unit, closing outputs", ID);
-        abus_out = 32'bz;
-        bbus_out = 32'bz;
-        d_select_out = 3'bz;
-        d_select_out_shift = 8'bz;
-        op_code_out = 3'bz;
+        if((ID==3'b011)||(ID==3'b100)) begin
+          $display("RS ID=%d, no instructions ready for execution unit, setting valid data to false", ID);
+          valid_data =0;
+        end
+        else begin
+          $display("RS ID=%d, no instructions ready for execution unit, closing outputs", ID);
+          abus_out = 32'bz;
+          bbus_out = 32'bz;
+          d_select_out = 3'bz;
+          d_select_out_shift = 8'bz;
+          op_code_out = 3'bz;
+        end
       end
     end
     trigger_exes = ~trigger_exes;
@@ -669,13 +858,22 @@ ID is as follows:
 00 = integer unit
 01 = FP multiplier unit
 10 = FP adder unit
+11 = load/store unit
+*/
+/*
+Current Instruction List:
+NOP   000
+LD    001
+ST    010
+ADDF  011
+MULTF 100
 */
 module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   (
     //in
-    clk, op_code_in, d_select_in, d_select_shift_in, abus_data_in, bbus_data_in, stall_by_mux,
+    clk, op_code_in, d_select_in, d_select_shift_in, abus_data_in, bbus_data_in, stall_by_mux, offset_in, memory_in, store_dbus_data_in,
     //out
-    is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out, fake_clock
+    is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out, fake_clock, memory_address, memory_out
   );
   //fake clock that happends at the end of the posedge reservation station
   //^not true
@@ -688,6 +886,12 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   input [31:0] bbus_data_in;
   //the input from the mux if there's two or more requests for the cdb and one execution needs to stall
   input stall_by_mux;
+  //the offset for load and store (actually the b instruction)
+  input [2:0] offset_in;
+  //the memory input wire
+  input [31:0] memory_in;
+  //the data from the regfile to store, from the dbus
+  input [31:0] store_dbus_data_in;
   //flag to determine if the execution unit is busy
   output reg is_busy;
   //flag for the regfile to verify it only accepts the final value at the correct time
@@ -697,6 +901,11 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   output reg [2:0] d_select_out;
   output reg [7:0] d_select_shift_out;
   output reg fake_clock;
+  //the memory address for the memory storing or loading
+  //NOTE: it is 32 bit like the rest of data, but only use 0-3 for memory testing
+  output reg [31:0] memory_address;
+  //the actual value to store to the memory
+  output reg [31:0] memory_out;
   //counter to use for determining the "cycle" of execution
   reg [31:0] counter;
   reg [31:0] counter_backup;
@@ -708,12 +917,17 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     dbus_data_out = 0;
     d_select_out = 0;
     d_select_shift_out = 0;
-    counter = 0;
+    memory_address = 32'bz;
+    memory_out = 32'bz;
     fake_clock = 0;
+    counter = 0;
+    counter_backup = 0;
   end
   
   always @(posedge clk) begin
     valid_data = 0;
+    memory_address = 31'bz;
+    memory_out = 32'bz;
     if(is_busy) begin
       counter = counter + 1;
       $display("execution unit %d is busy, counter=%d",ID, counter);
@@ -748,12 +962,37 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
             end
           endcase
         end
+        2'b11: begin
+          //load/store unit
+          case(op_code_in)
+            3'b001: begin
+              //load (from "memory", to regfile)
+              //will trigger memory address to return the value
+              memory_address = abus_data_in + offset_in;
+            end
+            3'b010: begin
+              //store (to "memory", from regfile)
+              memory_out = store_dbus_data_in;
+              memory_address = abus_data_in + offset_in;
+            end
+          endcase
+        end
       endcase
     end
     //if it equals, the exeuction unit is done
     //however, the mux may just have gotten two inputs
     if(counter == CYCLE_TIME) begin
       $display("execution complete for execution unit %d, valid data is high",ID);
+      if(op_code_in == 3'b001) begin
+        //actually load the data
+        dbus_data_out = memory_in;
+      end
+      else if(op_code_in == 3'b010) begin
+        //store should have no regfile writeback, write to nothing register
+        dbus_data_out = 32'b0;
+        d_select_out = 3'b0;
+        d_select_shift_out = 8'b00000001;
+      end
       //reset the counter and the busy flag
       is_busy = 0;
       counter_backup = counter;
@@ -929,6 +1168,115 @@ module smart_mux
       $display("after arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", FP_mult_stall, FP_add_stall, mem_stall,int_stall);
     end
     fake_mux_output_clock = ~fake_mux_output_clock;
+  end
+endmodule
+
+//the mux module for choosing between the load and store RS
+module partly_smart_mux
+(
+  //in
+  fake_clock, load_d_select, load_d_select_shift, load_address, load_offset, store_dbus_data, store_address, store_offset,
+  valid_load_data, valid_store_data, load_op_code, store_op_code, execution_unit_stall, stall_by_mux,
+  //out
+  store_stall, exec_d_select, exec_d_select_shift, exec_b_offset, exec_dbus_data, exec_abus_address, exec_op_code
+);
+  //the fake clock from the address calculator
+  input fake_clock;
+  //the values from the reservation stations of load and store
+  input [2:0] load_d_select;//d select
+  input [7:0] load_d_select_shift;//d select shift
+  input [31:0] load_address;//abus data
+  input [2:0] load_offset;//b code
+  input [2:0] store_offset;//b code
+  input [31:0] store_dbus_data;//dbus data
+  input [31:0] store_address;//abus data
+  input valid_load_data;
+  input valid_store_data;
+  input [2:0] load_op_code;
+  input [2:0] store_op_code;
+  input execution_unit_stall;
+  input stall_by_mux;
+  //the outputs for stalling the store reservation station
+  output reg store_stall;
+  output reg [2:0] exec_d_select;
+  output reg [7:0] exec_d_select_shift;
+  output reg [2:0] exec_b_offset;
+  output reg [31:0] exec_dbus_data;
+  output reg [31:0] exec_abus_address;
+  output reg [2:0] exec_op_code;
+  
+  initial begin
+    store_stall = 0;
+    exec_d_select = 3'bz;
+    exec_d_select_shift = 8'bz;
+    exec_b_offset = 3'bz;
+    exec_dbus_data = 32'bz;
+    exec_abus_address = 32'bz;
+    exec_op_code = 3'bz;
+  end
+  
+  reg [31:0] how_many_outputs;
+  
+  always @(fake_clock)begin
+    if(execution_unit_stall && stall_by_mux) begin
+      $display("partly smart mux stalled due to execution/mux stall");
+    end
+    else begin
+      how_many_outputs = 0;
+      if(valid_load_data > 0) begin
+        how_many_outputs = how_many_outputs+1;
+      end
+      if(valid_store_data > 0) begin
+        how_many_outputs = how_many_outputs+1;
+      end
+      if(how_many_outputs ==0) begin
+        $display("memory mux, no load/store reservation stations to output");
+        store_stall = 0;
+        exec_d_select = 3'bz;
+        exec_b_offset = 3'bz;
+        exec_d_select_shift = 8'bz;
+        exec_dbus_data = 32'bz;
+        exec_abus_address = 32'bz;
+        exec_op_code = 3'bz;
+      end
+      else if(how_many_outputs == 1)begin
+        $display("memory mux, one load/store reservation stations to output");
+        store_stall = 0;
+        if(valid_load_data > 0) begin
+          //not matter
+          exec_dbus_data = 32'b0;
+          //matter
+          exec_b_offset = load_offset;
+          exec_d_select = load_d_select;
+          exec_d_select_shift = load_d_select_shift;
+          exec_abus_address = load_address;
+          exec_op_code = load_op_code;
+        end
+        else if(valid_store_data > 0) begin
+          //not matter
+          exec_d_select = 3'b0;
+          exec_d_select_shift = 8'b00000001;
+          //matter
+          exec_b_offset = store_offset;
+          exec_dbus_data = store_dbus_data;
+          exec_abus_address = store_address;
+          exec_op_code = store_op_code;
+        end
+      end
+      else if(how_many_outputs > 1)begin
+        $display("memory mux, two load/store reservation stations to output, stall stores");
+        store_stall = 1;
+        //not matter
+        exec_dbus_data = 32'b0;
+        //matter
+        exec_b_offset = load_offset;
+        exec_d_select = load_d_select;
+        exec_d_select_shift = load_d_select_shift;
+        exec_abus_address = load_address;
+        exec_op_code = load_op_code;
+      end
+    end
+    
   end
 endmodule
 
