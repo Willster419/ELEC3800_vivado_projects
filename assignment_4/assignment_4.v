@@ -188,7 +188,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //the memory interfacing
   wire [31:0] memory_address;
   reg [31:0] memory [3:0];
-  wire [1:0] load_store;
+  wire [2:0] load_store;
   wire [31:0] store_data;
   reg [31:0] load_data;
   
@@ -249,7 +249,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //reservation station instance for load
   //setting BUS_LENGTH to 2 means it makes 3 of them, indexed 0-2
   //ID=011=ST
-  reservation_station #(.BUS_LENGTH(2),.ID(3'b011)) load_station
+  reservation_station #(.BUS_LENGTH(2),.ID(3'b011)) store_station
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(store_selected_flag),
@@ -265,7 +265,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //reservation station instance for store
   //setting BUS_LENGTH to 2 means it makes 3 of them, indexed 0-2
   //ID=100=LD
-  reservation_station #(.BUS_LENGTH(2),.ID(3'b100)) store_station
+  reservation_station #(.BUS_LENGTH(2),.ID(3'b100)) load_station
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(load_selected_flag),
@@ -294,7 +294,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   
   //execution unit instance for loading/storing
   //ID=11=LD/ST
-  execution_unit #(.CYCLE_TIME(3),.ID(2'b10)) load_store_unit
+  execution_unit #(.CYCLE_TIME(2),.ID(2'b11)) load_store_unit
   (
     //ins
     .clk(clk), .op_code_in(mem_ex_op_code), .d_select_in(mem_ex_d_select), .d_select_shift_in(mem_ex_d_select_shift),
@@ -302,7 +302,8 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     .store_dbus_data_in(mem_ex_dbus_data),
     //outs
     .is_busy(rs_ex_ld_st_is_busy), .valid_data(mem_mux_valid_data), .dbus_data_out(mem_mux_data),
-    .d_select_out(mem_mux_d_select), .d_select_shift_out(mem_mux_d_select_shift), .memory_address(memory_address), .memory_out(store_data)
+    .d_select_out(mem_mux_d_select), .d_select_shift_out(mem_mux_d_select_shift), .memory_address(memory_address), .memory_out(store_data),
+    .op_code_out(load_store)
   );
   
   //execution unit instance for adding
@@ -364,13 +365,21 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     //set the current instructin to nothing
     current_instruction = 12'b0;
     load_data = 32'bz;
+    /*
+    Current Instruction List:
+    NOP   000
+    LD    001
+    ST    010
+    ADDF  011
+    MULTF 100
+    */
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b100_100_001_001;//mult, r4, r1, r1 (r4=1)
-    instruction_queue[1] [11:0] = 12'b001_011_001_000;//load, r3, r1,  0 (null)
-    instruction_queue[2] [11:0] = 12'b011_010_001_001;//add,  r2, r1, r1 (r2=2)
-    instruction_queue[3] [11:0] = 12'b011_101_001_001;//add,  r5, r1, r1 (r5=2)
-    instruction_queue[4] [11:0] = 12'b100_110_001_001;//mult, r6, r1, r1 (r6=1)
-    instruction_queue[5] [11:0] = 12'b000_000_000_000;
+    instruction_queue[0] [11:0] = 12'b001_001_000_000;//load, r1, r0,  0 (r1=DEADBEEF)
+    instruction_queue[1] [11:0] = 12'b011_010_001_000;//add,  r2, r1, r0 (r2=DEADBEEF)
+    instruction_queue[2] [11:0] = 12'b000_000_000_000;//
+    instruction_queue[3] [11:0] = 12'b000_000_000_000;//
+    instruction_queue[4] [11:0] = 12'b000_000_000_000;//
+    instruction_queue[5] [11:0] = 12'b000_000_000_000;//
     //memory pre-load
     memory[0] [31:0] = 32'hDEADBEEF;
     memory[1] [31:0] = 32'b0;
@@ -441,14 +450,15 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //memory address updating block
   always @(memory_address) begin
     //filter out all the z and x
-    if((memory_address > 0) && (load_store > 2'b00)) begin
+    $display("request for memory started, memory_address=%d, load_store=%d", memory_address, load_store);
+    if((memory_address >= 0) && (load_store > 3'b000)) begin
       load_data = 32'bz;
       case(load_store)
-        2'b01: begin
+        3'b001: begin
           //load from memory
           load_data = memory[memory_address];
         end
-        2'b10: begin
+        3'b010: begin
           //store to memory
           memory[memory_address] = store_data;
         end
@@ -680,8 +690,8 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
           //loads do not need this, stores need d,
           case(op_code[counter])
             3'b001: begin
-              //do nothing
-              
+              //set operation data of b to be ready. we don't care about it anyways
+              operation_data_b_ready[counter]=1;
             end
             3'b010: begin
               //check it for d
@@ -873,7 +883,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     //in
     clk, op_code_in, d_select_in, d_select_shift_in, abus_data_in, bbus_data_in, stall_by_mux, offset_in, memory_in, store_dbus_data_in,
     //out
-    is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out, fake_clock, memory_address, memory_out
+    is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out, fake_clock, memory_address, memory_out, op_code_out
   );
   //fake clock that happends at the end of the posedge reservation station
   //^not true
@@ -906,9 +916,11 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   output reg [31:0] memory_address;
   //the actual value to store to the memory
   output reg [31:0] memory_out;
+  output reg [2:0] op_code_out;
   //counter to use for determining the "cycle" of execution
   reg [31:0] counter;
   reg [31:0] counter_backup;
+  reg [2:0] saved_op_code;
   
   initial begin
     //set all the stuffs to 0
@@ -922,12 +934,15 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     fake_clock = 0;
     counter = 0;
     counter_backup = 0;
+    op_code_out = 3'bz;
+    saved_op_code = 3'bz;
   end
   
   always @(posedge clk) begin
     valid_data = 0;
     memory_address = 31'bz;
     memory_out = 32'bz;
+    op_code_out = 3'bz;
     if(is_busy) begin
       counter = counter + 1;
       $display("execution unit %d is busy, counter=%d",ID, counter);
@@ -968,10 +983,14 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
             3'b001: begin
               //load (from "memory", to regfile)
               //will trigger memory address to return the value
+              op_code_out = op_code_in;
+              saved_op_code = op_code_in;
               memory_address = abus_data_in + offset_in;
             end
             3'b010: begin
               //store (to "memory", from regfile)
+              op_code_out = op_code_in;
+              saved_op_code = op_code_in;
               memory_out = store_dbus_data_in;
               memory_address = abus_data_in + offset_in;
             end
@@ -983,15 +1002,17 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     //however, the mux may just have gotten two inputs
     if(counter == CYCLE_TIME) begin
       $display("execution complete for execution unit %d, valid data is high",ID);
-      if(op_code_in == 3'b001) begin
+      if(saved_op_code == 3'b001) begin
         //actually load the data
         dbus_data_out = memory_in;
+        saved_op_code = 3'bz;
       end
-      else if(op_code_in == 3'b010) begin
+      else if(saved_op_code == 3'b010) begin
         //store should have no regfile writeback, write to nothing register
         dbus_data_out = 32'b0;
         d_select_out = 3'b0;
         d_select_shift_out = 8'b00000001;
+        saved_op_code = 3'bz;
       end
       //reset the counter and the busy flag
       is_busy = 0;

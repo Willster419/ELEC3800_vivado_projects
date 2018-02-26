@@ -51,10 +51,10 @@ module assignment_4_tb();
     num_cycles = 20;
     for(i=0;i < num_cycles; i= i+1) begin
       clk=0;
-      $display ("Time=%t,  clk=%b", $realtime, clk);
+      $display ("\nTime=%t,  clk=%b", $realtime, clk);
       #5
       clk=1;
-      $display ("Time=%t,  clk=%b, cycle=%d", $realtime, clk, i+1);
+      $display ("\nTime=%t,  clk=%b, cycle=%d", $realtime, clk, i+1);
       #5;//5ns delay
     end
   end
