@@ -264,11 +264,11 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     //set the current instructin to nothing
     current_instruction = 12'b0;
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b011_010_001_001;//add,  r2, r1, r1 (r2=2)
-    instruction_queue[1] [11:0] = 12'b011_011_010_001;//add,  r3, r2, r1 (r3=3)
-    instruction_queue[2] [11:0] = 12'b100_100_011_010;//mult, r4, r3, r2 (r4=6)
-    instruction_queue[3] [11:0] = 12'b000_000_000_000;//add,  r5, r2, r1 (r3=2)
-    instruction_queue[4] [11:0] = 12'b000_000_000_000;//add,  r3, r2, r1 (r3=3)//bad
+    instruction_queue[0] [11:0] = 12'b100_100_001_001;//mult, r4, r1, r1 (r4=1)
+    instruction_queue[1] [11:0] = 12'b001_011_001_001;//load, r3, r1,  0 (null)
+    instruction_queue[2] [11:0] = 12'b011_010_001_001;//add,  r2, r1, r1 (r2=2)
+    instruction_queue[3] [11:0] = 12'b011_101_001_001;//add,  r5, r1, r1 (r2=2)
+    instruction_queue[4] [11:0] = 12'b100_110_001_001;//mult, r6, r1, r1 (r4=1)
     instruction_queue[5] [11:0] = 12'b000_000_000_000;
   end
   
@@ -765,21 +765,21 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     //hear means that it was stalled by the mux not being ready
     else if(counter > CYCLE_TIME) begin
       //valid data needs to stay true for mux to work...
-      $display("(posedge) execution unit %d stalled by mux, setting valid back to true", ID);
+      $display("(posedge clk) execution unit %d stalled by mux, setting valid back to true", ID);
       valid_data = 1;
     end
     fake_clock = ~fake_clock;
   end
   
   always @(posedge stall_by_mux) begin
-    $display("posedge stall_by_mux detected for execution unit %d",ID);
+    $display("(posedge stall_by_mux) stall_by_mux detected for execution unit %d",ID);
     is_busy = 1;
     counter = counter_backup;
   end
   
   always @(negedge stall_by_mux) begin
     if(counter > CYCLE_TIME) begin
-      $display("negedge stall_by_mux detected for execution unit %d with counter > CYCLE_TIME true",ID);
+      $display("(negedge stall_by_mux) stall_by_mux detected for execution unit %d with counter > CYCLE_TIME true",ID);
       //mux just put it's data on the bus, can set busy to false
       is_busy = 0;
       counter = 0;
@@ -900,7 +900,7 @@ module smart_mux
     //go in the order of the if else blocks
     else if(how_many_inputs > 1) begin
       $display("mux says %d inputs, set cdbus, stalling required", how_many_inputs);
-      $display("before arbitration, FP_mult_valid=%b, FP_add_valid=%b, mem_valid=%b",FP_mult_valid,FP_add_valid,mem_valid);
+      $display("before arbitration, FP_mult_valid=%b, FP_add_valid=%b, mem_valid=%b, int_valid=%b",FP_mult_valid,FP_add_valid,mem_valid,int_valid);
       $display("before arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", FP_mult_stall, FP_add_stall, mem_stall,int_stall);
       if(FP_mult_valid) begin
         cdbus_d_select = FP_mult_d_select;
