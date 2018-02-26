@@ -72,10 +72,22 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire cdbus_valid_data;
   
   //wires connecting the regfile to the reservation station
-  wire [31:0] abus_wire;
-  wire [31:0] bbus_wire;
-  wire [7:0] a_select_wire;
-  wire [7:0] b_select_wire;
+  wire [31:0] abus_wire_ld_st;
+  wire [31:0] abus_wire_add;
+  wire [31:0] abus_wire_mult;
+  wire [31:0] abus_wire_int;
+  wire [31:0] bbus_wire_ld_st;
+  wire [31:0] bbus_wire_add;
+  wire [31:0] bbus_wire_mult;
+  wire [31:0] bbus_wire_int;
+  wire [7:0] a_select_wire_ld_st;
+  wire [7:0] a_select_wire_add;
+  wire [7:0] a_select_wire_mult;
+  wire [7:0] a_select_wire_int;
+  wire [7:0] b_select_wire_ld_st;
+  wire [7:0] b_select_wire_add;
+  wire [7:0] b_select_wire_mult;
+  wire [7:0] b_select_wire_int;
   wire [7:0] busy_bus;
   
   //wires connecting the reservation stations to the execution units
@@ -203,15 +215,20 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   
   //the control bit for setting the high bit for the regfile if the dest reg in use
   reg [7:0] busy_select_shift;
-  
+
   //register module instance
   regfile best_regfile_name_ever
   (
     //ins
-    .clk(clk), .Aselect(a_select_wire), .Bselect(b_select_wire), .busySelect(busy_select_shift),
+    .clk(clk), .AselectAdd(a_select_wire_add), .AselectInt(a_select_wire_int), .AselectMult(a_select_wire_mult),
+    .AselectLdSt(a_select_wire_ld_st), .BselectAdd(b_select_wire_add), .BselectInt(b_select_wire_int), .BselectMult(b_select_wire_mult),
+    .BselectLdSt(b_select_wire_ld_st), .busySelect(busy_select_shift),
     .Dselect(cdbus_dest_shift), .dbus(cdbus_data), .validData(cdbus_valid_data),
     //outs
-    .busyBus(busy_bus), .abus(abus_wire), .bbus(bbus_wire)
+    .busyBus(busy_bus), .abusAdd(abus_wire_add),
+    .abusMult(abus_wire_mult),
+    .abusInt(abus_wire_int),
+    .abusLdSt(abus_wire_ld_st),    .bbusLdSt(bbus_wire_ld_st),.bbusMult(bbus_wire_mult),.bbusAdd(bbus_wire_add),.bbusInt(bbus_wire_int)
   );
   
   //reservation station instance for added
@@ -221,11 +238,11 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(FP_add_selected_flag),
-    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire),
-    .bbus_in(bbus_wire), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_fp_add_is_busy), .cdbus_dest(cdbus_dest),
+    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire_add),
+    .bbus_in(bbus_wire_add), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_fp_add_is_busy), .cdbus_dest(cdbus_dest),
     .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data),
     //outs
-    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_add_full_flag), .d_select_out(rs_ex_fp_d_select),
+    .a_select_out(a_select_wire_add), .b_select_out(b_select_wire_add), .station_full(FP_add_full_flag), .d_select_out(rs_ex_fp_d_select),
     .d_select_out_shift(rs_ex_fp_d_select_shift), .abus_out(rs_ex_fp_abus_data), .bbus_out(rs_ex_fp_bbus_data),
     .op_code_out(rs_ex_fp_op_code)
   );
@@ -237,11 +254,11 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(FP_mult_selected_flag),
-    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire),
-    .bbus_in(bbus_wire), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_fp_mult_is_busy), .cdbus_dest(cdbus_dest),
+    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire_mult),
+    .bbus_in(bbus_wire_mult), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_fp_mult_is_busy), .cdbus_dest(cdbus_dest),
     .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data),
     //outs
-    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_mult_full_flag), .d_select_out(rs_ex_fp_mult_d_select),
+    .a_select_out(a_select_wire_mult), .b_select_out(b_select_wire_mult), .station_full(FP_mult_full_flag), .d_select_out(rs_ex_fp_mult_d_select),
     .d_select_out_shift(rs_ex_fp_mult_d_select_shift), .abus_out(rs_ex_fp_mult_abus_data), .bbus_out(rs_ex_fp_mult_bbus_data),
     .op_code_out(rs_ex_fp_mult_op_code)
   );
@@ -253,11 +270,11 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(store_selected_flag),
-    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire),
-    .bbus_in(bbus_wire), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_ld_st_is_busy), .cdbus_dest(cdbus_dest),
+    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire_ld_st),
+    .bbus_in(bbus_wire_ld_st), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_ld_st_is_busy), .cdbus_dest(cdbus_dest),
     .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data), .store_mux_stall(RS_store_mux_stall),
     //outs
-    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(store_full_flag), .d_select_out(rs_ex_st_d_select),
+    .a_select_out(a_select_wire_ld_st), .b_select_out(b_select_wire_ld_st), .station_full(store_full_flag), .d_select_out(rs_ex_st_d_select),
     .d_select_out_shift(rs_ex_st_d_select_shift), .abus_out(RS_store_address), .bbus_out(RS_store_data),
     .op_code_out(rs_ex_st_op_code), .memory_offset_out(RS_store_mem_ofset), .valid_data(RS_store_valid_data)
   );
@@ -269,11 +286,11 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(load_selected_flag),
-    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire),
-    .bbus_in(bbus_wire), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_ld_st_is_busy), .cdbus_dest(cdbus_dest),
+    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire_ld_st),
+    .bbus_in(bbus_wire_ld_st), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_ld_st_is_busy), .cdbus_dest(cdbus_dest),
     .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data),
     //outs
-    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(load_full_flag), .d_select_out(RS_load_dest),
+    .a_select_out(a_select_wire_ld_st), .b_select_out(b_select_wire_ld_st), .station_full(load_full_flag), .d_select_out(RS_load_dest),
     .d_select_out_shift(RS_load_dest_shift), .abus_out(RS_load_address), .bbus_out(rs_ex_ld_bbus_data),
     .op_code_out(rs_ex_ld_op_code), .trigger_exes(fake_meme_RS_mux_clock), .memory_offset_out(RS_load_mem_ofset),
     .valid_data(RS_load_valid_data)
@@ -374,9 +391,9 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     MULTF 100
     */
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b100_010_001_001;//mult, r2, r1, r1 (r2=0)
-    instruction_queue[1] [11:0] = 12'b011_011_100_001;//add, r3, r2, r1 (r3=1)
-    instruction_queue[2] [11:0] = 12'b000_000_000_000;//
+    instruction_queue[0] [11:0] = 12'b100_010_001_000;//mult, r2, r1, r0 (r2=0)
+    instruction_queue[1] [11:0] = 12'b011_011_010_001;//add, r3, r2, r1 (r3=1)
+    instruction_queue[2] [11:0] = 12'b011_100_001_011;//add, r4, r1, r3 (r4=2)
     instruction_queue[3] [11:0] = 12'b000_000_000_000;//
     instruction_queue[4] [11:0] = 12'b000_000_000_000;//
     instruction_queue[5] [11:0] = 12'b000_000_000_000;//
@@ -1337,46 +1354,117 @@ endmodule
 //registers are 32 bit length
 //there are 8 of them
 //register 0 is the null register
+/*
+.AselectAdd(a_select_wire_add), .AselectInt(a_select_wireInt), .AselectMult(a_select_wire_mult),
+    .AselectLdSt(a_select_wire_ld_st), .BselectAdd(b_select_wire_add), .BselectInt(b_select_wire_int), .BselectMult(b_select_wire_mult),
+    .BselectLdSt(b_select_wire_ld_st),
+    */
 module regfile(
-  input [7:0] Aselect,//select the register index to read from to store into abus
-  input [7:0] Bselect,//select the register index to read from to store into bbus
+  input [7:0] AselectAdd,//select the register index to read from to store into abus
+  input [7:0] AselectInt,//select the register index to read from to store into abus
+  input [7:0] AselectMult,//select the register index to read from to store into abus
+  input [7:0] AselectLdSt,//select the register index to read from to store into abus
+  input [7:0] BselectAdd,//select the register index to read from to store into bbus
+  input [7:0] BselectInt,//select the register index to read from to store into bbus
+  input [7:0] BselectMult,//select the register index to read from to store into bbus
+  input [7:0] BselectLdSt,//select the register index to read from to store into bbus
   input [7:0] Dselect,//select the register to write to from dbus
   input [7:0] busySelect,//flag for each flipflop to say if it is open
   input [31:0] dbus,//data in
-  output [31:0] abus,//data out
-  output [31:0] bbus,//data out
+  output [31:0] abusAdd,//data out
+  output [31:0] abusInt,//data out
+  output [31:0] abusMult,//data out
+  output [31:0] abusLdSt,//data out
+  output [31:0] bbusAdd,//data out
+  output [31:0] bbusInt,//data out
+  output [31:0] bbusMult,//data out
+  output [31:0] bbusLdSt,//data out
   output [7:0] busyBus,//bus for each of the reg entries if it's busy or not
   input clk,
   input validData
   );
   //if it's requesting register 0 just output a 0
-  assign abus = Aselect[0] ? 32'b0 : 32'bz;
-  assign bbus = Bselect[0] ? 32'b0 : 32'bz;
+  assign abusAdd = AselectAdd[0] ? 32'b0 : 32'bz;
+  assign bbusLdSt = BselectLdSt[0] ? 32'b0 : 32'bz;
+  assign abusInt = AselectInt[0] ? 32'b0 : 32'bz;
+  assign bbusAdd = BselectAdd[0] ? 32'b0 : 32'bz;
+  assign abusLdSt = AselectLdSt[0] ? 32'b0 : 32'bz;
+  assign bbusInt = BselectInt[0] ? 32'b0 : 32'bz;
+  assign abusMult = AselectMult[0] ? 32'b0 : 32'bz;
+  assign bbusMult = BselectMult[0] ? 32'b0 : 32'bz;
   assign busyBus[0] = 0;
   //only 8 of these for now
   DNegflipFlop myFlips[6:0](
     .dbus(dbus),
-    .abus(abus),
+    .abusAdd(abusAdd),
+    .abusInt(abusInt),
+    .abusMult(abusMult),
+    .abusLdSt(abusLdSt),
     .Dselect(Dselect[7:1]),//doing this means that index 7 of Deslect will go to DNegflipFlop index 7
-    .Bselect(Bselect[7:1]),
-    .Aselect(Aselect[7:1]),
+    .BselectLdSt(BselectLdSt[7:1]),
+    .BselectAdd(BselectAdd[7:1]),
+    .BselectInt(BselectInt[7:1]),
+    .BselectMult(BselectMult[7:1]),
+    .AselectAdd(AselectAdd[7:1]),
+    .AselectInt(AselectInt[7:1]),
+    .AselectLdSt(AselectLdSt[7:1]),
+    .AselectMult(AselectMult[7:1]),
     .busySelect(busySelect[7:1]),
-    .bbus(bbus),
+    .bbusAdd(bbusAdd),
+    .bbusInt(bbusInt),
+    .bbusMult(bbusMult),
+    .bbusLdSt(bbusLdSt),
     .isBusy(busyBus[7:1]),
     .clk(clk),
     .validData(validData)
     );
 endmodule
 
-module DNegflipFlop(dbus, abus, Dselect, Bselect, Aselect, bbus, clk, busySelect, isBusy, validData);
+module DNegflipFlop
+(
+  dbus,
+  abusAdd,
+  abusInt,
+  abusMult,
+  abusLdSt,
+  Dselect,
+  BselectLdSt,
+  BselectAdd,
+  BselectInt,
+  BselectMult,
+  AselectAdd,
+  AselectInt,
+  AselectLdSt,
+  AselectMult,
+  bbusAdd,
+  bbusInt,
+  bbusMult,
+  bbusLdSt,
+  clk,
+  busySelect,
+  isBusy,
+  validData
+);
   input [31:0] dbus;
   input Dselect;//the select write bit for this register
-  input Bselect;//the select read bit for this register
-  input Aselect;//the other select read bit for this register
+  input BselectLdSt;//the select read bit for this register
+  input BselectAdd;//the select read bit for this register
+  input BselectInt;//the select read bit for this register
+  input BselectMult;//the select read bit for this register
+  input AselectAdd;//the other select read bit for this register
+  input AselectInt;//the other select read bit for this register
+  input AselectLdSt;//the other select read bit for this register
+  input AselectMult;//the other select read bit for this register
   input busySelect;
   input clk;
-  output  [31:0] abus;
-  output  [31:0] bbus;
+  output  [31:0] abusAdd;
+  output  [31:0] abusInt;
+  output  [31:0] abusMult;
+  output  [31:0] abusLdSt;
+  output  [31:0] bbusAdd;
+  output  [31:0] bbusInt;
+  output  [31:0] bbusMult;
+  output  [31:0] bbusLdSt;
   reg [31:0] data;//the actual data for the register
   output reg isBusy;
   input validData;
@@ -1400,24 +1488,13 @@ module DNegflipFlop(dbus, abus, Dselect, Bselect, Aselect, bbus, clk, busySelect
     end
   end
   //if this register has a or b select high, update the a and b bus
-  assign abus = Aselect? data : 32'hzzzzzzzz;
-  assign bbus = Bselect? data : 32'hzzzzzzzz;
-  /*
-  always @(Aselect) begin
-    if(Aselect) begin
-    abus = data;
-    end
-    else begin
-    abus = 32'hz;
-    end
-  end
-  always @(Bselect) begin
-    if(Bselect) begin
-    bbus = data;
-    end
-    else begin
-    bbus = 32'hz;
-    end
-  end
-  */
+  assign abusAdd = AselectAdd? data : 32'hzzzzzzzz;
+  assign abusInt = AselectInt? data : 32'hzzzzzzzz;
+  assign abusMult = AselectMult? data : 32'hzzzzzzzz;
+  assign abusLdSt = AselectLdSt? data : 32'hzzzzzzzz;
+  assign bbusAdd = BselectAdd? data : 32'hzzzzzzzz;
+  assign bbusInt = BselectInt? data : 32'hzzzzzzzz;
+  assign bbusMult = BselectMult? data : 32'hzzzzzzzz;
+  assign bbusLdSt = BselectLdSt? data : 32'hzzzzzzzz;
+
 endmodule
