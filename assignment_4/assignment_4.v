@@ -142,7 +142,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   
   //the wires for connecting the flags if RS is full
   reg mem_full_flag;
-  reg FP_mult_full_flag;
+  wire FP_mult_full_flag;
   reg int_full_full_flag;
   wire FP_add_full_flag;
   
@@ -176,17 +176,34 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   
   //reservation station instance for added
   //setting BUS_LENGTH to 2 means it makes 3 of them, indexed 0-2
-  reservation_station #(.BUS_LENGTH(2)) FP_add_station
+  //ID=010=ADD
+  reservation_station #(.BUS_LENGTH(2),.ID(3'b010)) FP_add_station
   (
     //ins
-    .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(FP_add_selected_flag), .opbus_op(opbus_opcode), .opbus_dest(opbus_dest),
-    .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire), .bbus_in(bbus_wire), .busy_bus(busy_bus),
-    .execution_unit_busy(rs_ex_fp_add_is_busy), .cdbus_dest(cdbus_dest), .cdbus_dest_shift(cdbus_dest_shift),
-    .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data),
+    .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(FP_add_selected_flag),
+    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire),
+    .bbus_in(bbus_wire), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_fp_add_is_busy), .cdbus_dest(cdbus_dest),
+    .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data),
     //outs
     .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_add_full_flag), .d_select_out(rs_ex_fp_d_select),
     .d_select_out_shift(rs_ex_fp_d_select_shift), .abus_out(rs_ex_fp_abus_data), .bbus_out(rs_ex_fp_bbus_data),
     .op_code_out(rs_ex_fp_op_code)
+  );
+  
+  //reservation station instance for mult
+  //setting BUS_LENGTH to 1 means it makes 2 of them, indexed 0-1
+  //ID=001=MULT
+  reservation_station #(.BUS_LENGTH(1),.ID(3'b001)) FP_mult_station
+  (
+    //ins
+    .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(FP_mult_selected_flag),
+    .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire),
+    .bbus_in(bbus_wire), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_fp_mult_is_busy), .cdbus_dest(cdbus_dest),
+    .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data),
+    //outs
+    .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(FP_mult_full_flag), .d_select_out(rs_ex_fp_mult_d_select),
+    .d_select_out_shift(rs_ex_fp_mult_d_select_shift), .abus_out(rs_ex_fp_mult_abus_data), .bbus_out(rs_ex_fp_mult_bbus_data),
+    .op_code_out(rs_ex_fp_mult_op_code)
   );
   
   //execution unit instance for adding
@@ -198,11 +215,20 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     .abus_data_in(rs_ex_fp_abus_data), .bbus_data_in(rs_ex_fp_bbus_data), .stall_by_mux(FP_add_mux_stall),
     //outs
     .is_busy(rs_ex_fp_add_is_busy), .valid_data(FP_add_mux_valid_data), .dbus_data_out(FP_add_mux_data),
-    .d_select_out(FP_add_mux_d_select), .d_select_shift_out(FP_add_mux_d_select_shift), .fake_clock(fake_mux_clock)
+    .d_select_out(FP_add_mux_d_select), .d_select_shift_out(FP_add_mux_d_select_shift)
   );
   
   //execution unit instance for multing
-  
+  //ID=01=FP_MULT
+  execution_unit #(.CYCLE_TIME(5),.ID(2'b01)) FP_mult_unit
+  (
+    //ins
+    .clk(clk), .op_code_in(rs_ex_fp_mult_op_code), .d_select_in(rs_ex_fp_mult_d_select), .d_select_shift_in(rs_ex_fp_mult_d_select_shift),
+    .abus_data_in(rs_ex_fp_mult_abus_data), .bbus_data_in(rs_ex_fp_mult_bbus_data), .stall_by_mux(FP_mult_mux_stall),
+    //outs
+    .is_busy(rs_ex_fp_mult_is_busy), .valid_data(FP_mult_mux_valid_data), .dbus_data_out(FP_mult_mux_data),
+    .d_select_out(FP_mult_mux_d_select), .d_select_shift_out(FP_mult_mux_d_select_shift), .fake_clock(fake_mux_clock)
+  );
   
   //mux instance
   smart_mux smux
@@ -228,7 +254,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     int_selected_flag = 0;
     mem_full_flag = 0;
     //FP_add_full_flag = 0;
-    FP_mult_full_flag = 0;
+    //FP_mult_full_flag = 0;
     int_full_full_flag = 0;
     //set the fake clocks
     fake_rs_clock = 0;
@@ -313,7 +339,7 @@ endmodule
 
 //the module for creating the reservation stations
 //default data iwdth is 1, can be changed to allow more width
-module reservation_station #(parameter BUS_LENGTH = 1)
+module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   (
     //ins
     clk, fake_clock, fake_mux_clock, station_selected, opbus_op, opbus_dest, opbus_src_a, opbus_src_b, abus_in, bbus_in, busy_bus,
