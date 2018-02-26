@@ -264,11 +264,11 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     //set the current instructin to nothing
     current_instruction = 12'b0;
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b011_010_001_001;//add, r2, r1, r1 (r2=2)
-    instruction_queue[1] [11:0] = 12'b011_011_010_001;//add, r3, r2, r1 (r3=3)
-    instruction_queue[2] [11:0] = 12'b011_100_001_001;//add, r4, r1, r1 (r3=2)
-    instruction_queue[3] [11:0] = 12'b011_101_001_001;//add, r5, r2, r1 (r3=2)
-    instruction_queue[4] [11:0] = 12'b000_000_000_000;//add, r3, r2, r1 (r3=3)//bad
+    instruction_queue[0] [11:0] = 12'b011_010_001_001;//add,  r2, r1, r1 (r2=2)
+    instruction_queue[1] [11:0] = 12'b011_011_010_001;//add,  r3, r2, r1 (r3=3)
+    instruction_queue[2] [11:0] = 12'b100_100_011_010;//mult, r4, r3, r2 (r4=6)
+    instruction_queue[3] [11:0] = 12'b000_000_000_000;//add,  r5, r2, r1 (r3=2)
+    instruction_queue[4] [11:0] = 12'b000_000_000_000;//add,  r3, r2, r1 (r3=3)//bad
     instruction_queue[5] [11:0] = 12'b000_000_000_000;
   end
   
@@ -473,7 +473,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       if(station_selected) begin:enqueue_op_break
         repeat(BUS_LENGTH+1) begin:enqueue_op_continue
           if(!station_in_use[counter]) begin
-            $display("station %d is not in use, filling", counter);
+            $display("RS ID=%d, station %d is not in use, filling", ID, counter);
             //update hte value in that counter
             op_code[counter] [2:0] = opbus_op;
             dest_reg_shift[counter] [7:0] = 8'b00000001 << opbus_dest;
@@ -488,7 +488,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
             //also check if it's the last reservation station
             if(counter == BUS_LENGTH) begin
               station_full = 1;
-              $display("reservation station is full");
+              $display("RS ID=%d, reservation station is full", ID);
             end
             //and disable the loop to prevent accidental updating any more values
             disable enqueue_op_break;
@@ -505,15 +505,15 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
     begin:data_check_break
       repeat(BUS_LENGTH+1) begin:data_check_continue
         if(station_in_use[counter]) begin
-          $display("station %d is in use", counter);
+          $display("RS ID=%d, station %d is in use", ID, counter);
           //check if the value for each src is ready
           //first check via snooping
           if(!operation_data_a_ready[counter]) begin
-            $display("data for a (regsiter %d) of station %d is not ready", src_a[counter], counter);
+            $display("RS ID=%d, data for a (regsiter %d) of station %d is not ready", ID, src_a[counter], counter);
             //if the snopped data is relavent to this reservation station
             //$display("testing for common data bus: cdbus_dest=%d, src_a[counter]=%d",cdbus_dest,src_a[counter]);
             if(cdbus_dest == src_a[counter]) begin
-              $display("cdbus says data is relavent (destination register %d) for source a at station %d ", cdbus_dest, counter);
+              $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source a at station %d ", ID, cdbus_dest, counter);
               //update the value with the snopped value and set data ready flag
               abus_data[counter] = cdbus_dest_data;
               operation_data_a_ready[counter]=1;
@@ -526,7 +526,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
                 counter3 = counter-1;
                 repeat(counter) begin
                   if(dest_reg[counter3] == src_a[counter])begin
-                    $display("setting ready flag for source a of station %d back to false because hazard conflicts with destination of station %d",counter,counter3);
+                    $display("RS ID=%d, setting ready flag for source a of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
                     operation_data_a_ready[counter]=0;
                   end
                   counter3 = counter3-1;
@@ -534,7 +534,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
               end
             end
             else if(!busy_bus[src_a[counter]]) begin
-              $display("busybus says register %d for a is up to date for station %d", src_a[counter], counter);
+              $display("RS ID=%d, busybus says register %d for a is up to date for station %d", ID, src_a[counter], counter);
               //it is ready, set the output address of a
               //it will trigger the wire to put the value at the reg index onto the abus
               a_select_out = src_a_shift[counter];
@@ -545,17 +545,17 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
             end
           end
           if(!operation_data_b_ready[counter]) begin
-            $display("data for b (regsiter %d) of station %d is not ready", src_b[counter], counter);
+            $display("RS ID=%d, data for b (regsiter %d) of station %d is not ready", ID, src_b[counter], counter);
             //if the snopped data is relavent to this reservation station
             if(cdbus_dest == src_b[counter]) begin
-              $display("cdbus says data is relavent (destination register %d) for source b at station %d ", src_b[counter], counter);
+              $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source b at station %d ", ID, src_b[counter], counter);
               bbus_data[counter] = cdbus_dest_data;
               operation_data_b_ready[counter]=1;
               if(counter > 0) begin: WAW_check_break_b
                 counter3 = counter-1;
                 repeat(counter) begin
                   if(dest_reg[counter3] == src_b[counter])begin
-                    $display("setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d",counter,counter3);
+                    $display("RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
                     operation_data_b_ready[counter]=0;
                   end
                   counter3 = counter3-1;
@@ -563,7 +563,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
               end
             end
             else if(!busy_bus[src_b[counter]]) begin
-              $display("busybus says register %d for b is up to date for station %d", src_b[counter], counter);
+              $display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, src_b[counter], counter);
               //it is ready, set the output address of a
               //it will trigger the wire to put the value at the reg index onto the abus
               b_select_out = src_b_shift[counter];
@@ -596,7 +596,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       repeat(BUS_LENGTH+1) begin:data_output_continue
         if(station_in_use[counter] && operation_data_a_ready[counter] && operation_data_b_ready[counter] && !execution_unit_busy) begin
           //set all the stuff and touch the output buses
-          $display("station %d is in use, and operation data is ready, dequeuing for execution",counter);
+          $display("RS ID=%d, station %d is in use, and operation data is ready, dequeuing for execution", ID,counter);
           output_bus_touched = 1;
           abus_out = abus_data[counter];
           bbus_out = bbus_data[counter];
@@ -641,7 +641,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
           station_in_use[BUS_LENGTH] = 0;
           //and also set the station full flag to low
           if(station_full) begin
-            $display("reservation station is no longer full");
+            $display("RS ID=%d, reservation station is no longer full", ID);
           end
           station_full = 0;
           disable data_output_break;
@@ -650,7 +650,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       end
       //else close the output to stop the execution units
       if(!output_bus_touched) begin
-        $display("no instructions ready for execution unit, closing outputs");
+        $display("RS ID=%d, no instructions ready for execution unit, closing outputs", ID);
         abus_out = 32'bz;
         bbus_out = 32'bz;
         d_select_out = 3'bz;
