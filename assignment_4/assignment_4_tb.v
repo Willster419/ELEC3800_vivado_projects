@@ -48,6 +48,8 @@ module assignment_4_tb();
     //25MHz = 40ns
     //40MHz = 25ns
     //20MHz = 50ns
+    $display("reservation station IDs: 001=MULT, 010=ADD, 011=ST, 100=LD");
+    $display("execution unit IDs:      001=MULT, 010=ADD, 011=LD/ST");
     num_cycles = 20;
     for(i=0;i < num_cycles; i= i+1) begin
       clk=0;

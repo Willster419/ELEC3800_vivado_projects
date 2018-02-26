@@ -374,16 +374,17 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     MULTF 100
     */
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b100_010_001_001;//r2=1
-    instruction_queue[1] [11:0] = 12'b011_011_010_001;//r3=2
-    instruction_queue[2] [11:0] = 12'b011_101_001_001;//r5=2
+    instruction_queue[0] [11:0] = 12'b100_010_001_000;//mult, r2, r1, r0 (r2=0)
+    instruction_queue[1] [11:0] = 12'b011_011_001_001;//add,  r3, r1, r1 (r3=2)
+    instruction_queue[2] [11:0] = 12'b001_100_000_000;//load, r4, r0,  0 (r4=DEADBEEF)
     instruction_queue[3] [11:0] = 12'b000_000_000_000;//
     instruction_queue[4] [11:0] = 12'b000_000_000_000;//
     instruction_queue[5] [11:0] = 12'b000_000_000_000;//
+    
     //memory pre-load
     memory[0] [31:0] = 32'hDEADBEEF;
     memory[1] [31:0] = 32'b0;
-    memory[2] [31:0] = 32'b0;// a 1 will be stored here
+    memory[2] [31:0] = 32'b0;
     memory[3] [31:0] = 32'b0;
   end
   
@@ -1190,6 +1191,9 @@ module smart_mux
         int_stall = int_valid? 1:0;
       end
       $display("after arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", FP_mult_stall, FP_add_stall, mem_stall,int_stall);
+      if(how_many_inputs > 0) begin
+        $display("writing to common data bus: dest=%d, data=%X", cdbus_d_select, cdbus_data);
+      end
     end
     fake_mux_output_clock = ~fake_mux_output_clock;
   end
