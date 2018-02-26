@@ -1,6 +1,6 @@
 /*************************
 *  Willard Wider
-*  02-21-18
+*  02-26-18
 *  ELEC3800
 *  assignment_4.v
 *  building a tomselo CPU
@@ -11,8 +11,10 @@ Current specs:
 3 opcode bits (8 instructions total)
 3 register bits (8 registers total) [register 0 is the nothing register]
 32 bit register/bus width
-format: 000__000 __000 __000 
-        op __dest__src1__src2
+format:   000__000 __ 000 __000 
+add/mult: op __dest__src1 __src2
+load:     op __dest__index__offset
+store:    op __data__index__offset
         (12 bit width)
 */
 
@@ -46,15 +48,14 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //the address output of the program counter
   //not used for now
   output [31:0] iaddrbus;
-  ////////////////////////////////////////////////////////////////
-  
-  //the clock. it's a clock. it does clock things.
-  input clk;
-  
   //the databus or loading and storing data to (big bad) memeory
   inout  [31:0] databus;
   //the output calculated value of the the data address bus
   output [31:0] daddrbus;
+  ////////////////////////////////////////////////////////////////
+  
+  //the clock. it's a clock. it does clock things.
+  input clk;
   
   //the wires used for the operation bus
   //connects the instructon queue (top module for now)
@@ -71,7 +72,8 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire [31:0] cdbus_data;
   wire cdbus_valid_data;
   
-  //wires connecting the regfile to the reservation station
+  //wires connecting the regfile to the reservation stations
+  //one for each one (except load/store)
   wire [31:0] abus_wire_ld_st;
   wire [31:0] abus_wire_add;
   wire [31:0] abus_wire_mult;
@@ -118,14 +120,12 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire [7:0] rs_ex_ld_d_select_shift;
   wire [31:0] rs_ex_ld_abus_data;
   wire [31:0] rs_ex_ld_bbus_data;
-  //wire rs_ex_ld_is_busy;
   //STORE
   wire [2:0] rs_ex_st_op_code;
   wire [2:0] rs_ex_st_d_select;
   wire [7:0] rs_ex_st_d_select_shift;
   wire [31:0] rs_ex_st_abus_data;
   wire [31:0] rs_ex_st_bbus_data;
-  //wire rs_ex_st_is_busy;
   wire rs_ex_ld_st_is_busy;
   
   //wires connecting the execution units to the mux
@@ -173,16 +173,19 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire RS_store_valid_data;
   
   //wires for connecting the additional memory components
+  //both
   wire [2:0] RS_load_mem_ofset;//b select
   wire [2:0] RS_store_mem_ofset;//b select
   wire [31:0] RS_load_address;//a data
   wire [31:0] RS_store_address;//a data
-  
+  //store
   wire RS_store_mux_stall;
   wire [31:0] RS_store_data;//dbus data
-  wire [2:0] RS_load_dest;
-  wire [7:0] RS_load_dest_shift;
+  //load
+  wire [2:0] RS_load_dest;//d select
+  wire [7:0] RS_load_dest_shift;//d select
   
+  //the wires connect the lload and store RS to the mux
   wire [2:0] mem_ex_d_select;
   wire [7:0] mem_ex_d_select_shift;
   wire [2:0] mem_ex_b_offset;
@@ -222,13 +225,11 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     //ins
     .clk(clk), .AselectAdd(a_select_wire_add), .AselectInt(a_select_wire_int), .AselectMult(a_select_wire_mult),
     .AselectLdSt(a_select_wire_ld_st), .BselectAdd(b_select_wire_add), .BselectInt(b_select_wire_int), .BselectMult(b_select_wire_mult),
-    .BselectLdSt(b_select_wire_ld_st), .busySelect(busy_select_shift),
-    .Dselect(cdbus_dest_shift), .dbus(cdbus_data), .validData(cdbus_valid_data),
+    .BselectLdSt(b_select_wire_ld_st), .busySelect(busy_select_shift), .Dselect(cdbus_dest_shift), .dbus(cdbus_data),
+    .validData(cdbus_valid_data),
     //outs
-    .busyBus(busy_bus), .abusAdd(abus_wire_add),
-    .abusMult(abus_wire_mult),
-    .abusInt(abus_wire_int),
-    .abusLdSt(abus_wire_ld_st),    .bbusLdSt(bbus_wire_ld_st),.bbusMult(bbus_wire_mult),.bbusAdd(bbus_wire_add),.bbusInt(bbus_wire_int)
+    .busyBus(busy_bus), .abusAdd(abus_wire_add), .abusMult(abus_wire_mult), .abusInt(abus_wire_int), .abusLdSt(abus_wire_ld_st),
+    .bbusLdSt(bbus_wire_ld_st), .bbusMult(bbus_wire_mult), .bbusAdd(bbus_wire_add), .bbusInt(bbus_wire_int)
   );
   
   //reservation station instance for added
@@ -370,14 +371,9 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     FP_add_selected_flag = 0;
     FP_mult_selected_flag = 0;
     int_selected_flag = 0;
-    //mem_full_flag = 0;
-    //FP_add_full_flag = 0;
-    //FP_mult_full_flag = 0;
     int_full_full_flag = 0;
-    //set the fake clocks
+    //set the fake clock
     fake_rs_clock = 0;
-    //fake_mux_clock = 0;
-    //set the busy_select to 0
     busy_select_shift = 8'b0;
     //set the current instructin to nothing
     current_instruction = 12'b0;
@@ -417,14 +413,6 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     busy_select_shift = 8'b0;
     //copy the instruction to the current reg
     current_instruction[11:0] = instruction_queue[0];
-    /*
-    Current Instruction List:
-    NOP   000
-    LD    001
-    ST    010
-    ADDF  011
-    MULTF 100
-    */
     case (current_instruction[11:9])
       3'b000: begin
         //nop
@@ -486,12 +474,11 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
       endcase
     end
   end
-  
+  //generic assign statemetns for the operation bus (opbus)
   assign opbus_opcode = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[11:9] : 3'bz;
   assign opbus_dest = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[8:6] : 3'bz;
   assign opbus_src_a = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[5:3] : 3'bz;
   assign opbus_src_b = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[2:0] : 3'bz;
-  //assign busy_select_shift = (mem_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? 8'b00000001 << opbus_dest : 8'b0;
 endmodule
 
 //the module for creating the reservation stations
@@ -509,7 +496,9 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   input clk;
   //the delayed clock for triggering the alwyas block
   //it's the last thing done in the always block for the instruction dequeuing
+  //delay clock from insturctuion queue
   input fake_clock;
+  //delay clock for after the common data bus (cdbus) has put the data on the bus
   input fake_mux_clock;
   //determins if the station is selected to grab the next enqueued element
   input station_selected;
@@ -624,7 +613,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   
   //use fake_clock to give a little delay
   //in theory it's listinigh for the change and therefore
-  //won't *have* to happen during the blocking part
+  //happends after the blocking part
   always @(fake_clock) begin
     //only run this if the station is not full
     counter = 0;
@@ -666,6 +655,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
     end
   end
   
+  //checks if data for each station is ready by first snooping, then checking the regfile
   always @(fake_mux_clock) begin
     counter = 0;
     //use a loop to incriment the counter  for checking if data is ready
@@ -796,13 +786,13 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
               end
             end
           endcase
-          
         end
         counter = counter+1;
       end
     end
   end
   
+  //deques from the RS to give to the execution unit
   always @(negedge clk) begin
     counter = 0;
     output_bus_touched = 0;
@@ -908,22 +898,6 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
 endmodule
 
 //the module for creating the execution units
-//may need to make seperate ones later
-/*
-ID is as follows:
-00 = integer unit
-01 = FP multiplier unit
-10 = FP adder unit
-11 = load/store unit
-*/
-/*
-Current Instruction List:
-NOP   000
-LD    001
-ST    010
-ADDF  011
-MULTF 100
-*/
 module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   (
     //in
@@ -931,8 +905,6 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     //out
     is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out, fake_clock, memory_address, memory_out, op_code_out
   );
-  //fake clock that happends at the end of the posedge reservation station
-  //^not true
   input clk;
   //the inputs from the reservation station
   input [2:0] op_code_in;
@@ -984,6 +956,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     saved_op_code = 3'bz;
   end
   
+  //runs the simulated execution as soon as possible (at the main clock)
   always @(posedge clk) begin
     valid_data = 0;
     memory_address = 31'bz;
@@ -1077,12 +1050,15 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     fake_clock = ~fake_clock;
   end
   
+  //stall trigger for the cdbus mux, disable the execution unit
   always @(posedge stall_by_mux) begin
     $display("(posedge stall_by_mux) stall_by_mux detected for execution unit %d",ID);
     is_busy = 1;
     counter = counter_backup;
   end
   
+  //trigger for the cdbus mux, this unit was selected to go next
+  //can therefore execute next instruction
   always @(negedge stall_by_mux) begin
     if(counter > CYCLE_TIME) begin
       $display("(negedge stall_by_mux) stall_by_mux detected for execution unit %d with counter > CYCLE_TIME true",ID);
@@ -1105,7 +1081,7 @@ module smart_mux
   mem_stall, FP_mult_stall, FP_add_stall, int_stall, cdbus_d_select, cdbus_d_select_shift, cdbus_data, cdbus_valid_data,
   fake_mux_output_clock
 );
-  //the clock that is set at the end of the fp mult execution unit in hopes of getting a delay
+  //delay clock from the FP mult unit
   input fake_clock;
   //the 4 flags to state if we have valid input to process
   input mem_valid;
@@ -1152,6 +1128,7 @@ module smart_mux
     fake_mux_output_clock = 0;
   end
   
+  //deals with data collision/arbitration
   always @(fake_clock) begin
     how_many_inputs = 0;
     //check how many inputs we actually have
@@ -1250,7 +1227,7 @@ module partly_smart_mux
   //out
   store_stall, exec_d_select, exec_d_select_shift, exec_b_offset, exec_dbus_data, exec_abus_address, exec_op_code
 );
-  //the fake clock from the address calculator
+  //the fake clock from the reservation station
   input fake_clock;
   //the values from the reservation stations of load and store
   input [2:0] load_d_select;//d select
@@ -1274,6 +1251,8 @@ module partly_smart_mux
   output reg [31:0] exec_dbus_data;
   output reg [31:0] exec_abus_address;
   output reg [2:0] exec_op_code;
+  //counter for how many stations want to go
+  reg [31:0] how_many_outputs;
   
   initial begin
     store_stall = 0;
@@ -1285,8 +1264,7 @@ module partly_smart_mux
     exec_op_code = 3'bz;
   end
   
-  reg [31:0] how_many_outputs;
-  
+  //handle mux selection/arbitration
   always @(fake_clock)begin
     if(execution_unit_stall && stall_by_mux) begin
       $display("partly smart mux stalled due to execution/mux stall");
@@ -1354,11 +1332,6 @@ endmodule
 //registers are 32 bit length
 //there are 8 of them
 //register 0 is the null register
-/*
-.AselectAdd(a_select_wire_add), .AselectInt(a_select_wireInt), .AselectMult(a_select_wire_mult),
-    .AselectLdSt(a_select_wire_ld_st), .BselectAdd(b_select_wire_add), .BselectInt(b_select_wire_int), .BselectMult(b_select_wire_mult),
-    .BselectLdSt(b_select_wire_ld_st),
-    */
 module regfile(
   input [7:0] AselectAdd,//select the register index to read from to store into abus
   input [7:0] AselectInt,//select the register index to read from to store into abus
@@ -1422,28 +1395,8 @@ endmodule
 
 module DNegflipFlop
 (
-  dbus,
-  abusAdd,
-  abusInt,
-  abusMult,
-  abusLdSt,
-  Dselect,
-  BselectLdSt,
-  BselectAdd,
-  BselectInt,
-  BselectMult,
-  AselectAdd,
-  AselectInt,
-  AselectLdSt,
-  AselectMult,
-  bbusAdd,
-  bbusInt,
-  bbusMult,
-  bbusLdSt,
-  clk,
-  busySelect,
-  isBusy,
-  validData
+  dbus, abusAdd, abusInt, abusMult, abusLdSt, Dselect, BselectLdSt, BselectAdd, BselectInt, BselectMult, AselectAdd,
+  AselectInt, AselectLdSt, AselectMult, bbusAdd, bbusInt, bbusMult, bbusLdSt, clk, busySelect, isBusy, validData
 );
   input [31:0] dbus;
   input Dselect;//the select write bit for this register
@@ -1475,7 +1428,7 @@ module DNegflipFlop
   isBusy = 0;
   end
   
-  //at the change in this register
+  //at the change in this register for setting the dest register to be in use
   always @(posedge busySelect) begin
     isBusy = 1;
   end
