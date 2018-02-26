@@ -374,9 +374,9 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     MULTF 100
     */
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b100_010_001_000;//mult, r2, r1, r0 (r2=0)
-    instruction_queue[1] [11:0] = 12'b011_011_001_001;//add,  r3, r1, r1 (r3=2)
-    instruction_queue[2] [11:0] = 12'b001_100_000_000;//load, r4, r0,  0 (r4=DEADBEEF)
+    instruction_queue[0] [11:0] = 12'b100_010_001_001;//mult, r2, r1, r1 (r2=0)
+    instruction_queue[1] [11:0] = 12'b011_011_100_001;//add, r3, r2, r1 (r3=1)
+    instruction_queue[2] [11:0] = 12'b000_000_000_000;//
     instruction_queue[3] [11:0] = 12'b000_000_000_000;//
     instruction_queue[4] [11:0] = 12'b000_000_000_000;//
     instruction_queue[5] [11:0] = 12'b000_000_000_000;//
@@ -551,6 +551,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   reg[BUS_LENGTH:0] operation_data_b_ready;
   //array of bits if the station at the index is in use
   reg[BUS_LENGTH:0] station_in_use;
+  reg[BUS_LENGTH:0] a_b_equal;
   //the counter to traverse the array of stations
   //used as the index location for where to enqueue the instruction
   reg[31:0] counter;
@@ -596,6 +597,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       operation_data_a_ready[counter] = 0;
       operation_data_b_ready[counter] = 0;
       station_in_use[counter] = 0;
+      a_b_equal[counter] = 0;
       counter = counter+1;
     end
     counter = 0;
@@ -629,6 +631,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
             src_b[counter] [2:0] = opbus_src_b;
             src_a_shift[counter] [7:0] = 8'b00000001 << opbus_src_a;
             src_b_shift[counter] [7:0] = 8'b00000001 << opbus_src_b;
+            a_b_equal[counter] = 0;
             operation_data_a_ready[counter] = 0;
             operation_data_b_ready[counter] = 0;
             station_in_use[counter] = 1;
@@ -659,7 +662,11 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
             $display("RS ID=%d, data for a (regsiter %d) of station %d is not ready", ID, src_a[counter], counter);
             //if the snopped data is relavent to this reservation station
             //$display("testing for common data bus: cdbus_dest=%d, src_a[counter]=%d",cdbus_dest,src_a[counter]);
-            if(cdbus_dest == src_a[counter]) begin
+            if(dest_reg[counter] == src_a[counter])begin
+              $display("RS ID=%d, dest_reg and src_a match (%d) for station %d, ignoring",ID, src_a[counter],counter);
+              operation_data_a_ready[counter]=1;
+            end
+            else if(cdbus_dest == src_a[counter]) begin
               $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source a at station %d ", ID, cdbus_dest, counter);
               //update the value with the snopped value and set data ready flag
               abus_data[counter] = cdbus_dest_data;
@@ -730,9 +737,20 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
               end
             end
             default: begin
-              if(!operation_data_b_ready[counter]) begin
+              if(src_a[counter] == src_b[counter]) begin
+                $display("RS ID=%d, src_a and b match(%d), setting match bit and copying data, station %d", ID, src_b[counter], counter);
+                a_b_equal[counter] = 1;
+                operation_data_b_ready[counter] = 1;
+                b_update_index_flag = 1;
+                b_update_index = counter;
+              end
+              else if(!operation_data_b_ready[counter]) begin
                 $display("RS ID=%d, data for b (regsiter %d) of station %d is not ready", ID, src_b[counter], counter);
                 //if the snopped data is relavent to this reservation station
+                if(dest_reg[counter] == src_b[counter])begin
+                  $display("RS ID=%d, dest_reg and src_b match (%d) for station %d, ignoring",ID, src_b[counter],counter);
+                  operation_data_b_ready[counter]=1;
+                end
                 if(cdbus_dest == src_b[counter]) begin
                   $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source b at station %d ", ID, src_b[counter], counter);
                   bbus_data[counter] = cdbus_dest_data;
@@ -777,7 +795,12 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       abus_data[a_update_index] = abus_in;
     end
     if(b_update_index_flag) begin
+      if(a_b_equal[counter]) begin
+      bbus_data[b_update_index] = abus_in;
+      end
+      else begin
       bbus_data[b_update_index] = bbus_in;
+      end
     end
     a_update_index_flag = 0;
     b_update_index_flag = 0;
@@ -821,6 +844,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
             operation_data_a_ready[counter2] = operation_data_a_ready[counter2+1];
             operation_data_b_ready[counter2] = operation_data_b_ready[counter2+1];
             station_in_use[counter2] = station_in_use[counter2+1];
+            a_b_equal[counter2] = a_b_equal[counter2+1];
             counter2 = counter2+1;
           end
           //then set the values of the last one to 0
@@ -836,6 +860,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
           operation_data_a_ready[BUS_LENGTH] = 0;
           operation_data_b_ready[BUS_LENGTH] = 0;
           station_in_use[BUS_LENGTH] = 0;
+          a_b_equal[BUS_LENGTH] = 0;
           //and also set the station full flag to low
           if(station_full) begin
             $display("RS ID=%d, reservation station is no longer full", ID);
@@ -1191,9 +1216,9 @@ module smart_mux
         int_stall = int_valid? 1:0;
       end
       $display("after arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", FP_mult_stall, FP_add_stall, mem_stall,int_stall);
-      if(how_many_inputs > 0) begin
-        $display("writing to common data bus: dest=%d, data=%X", cdbus_d_select, cdbus_data);
-      end
+    end
+    if(how_many_inputs > 0) begin
+      $display("writing to common data bus: dest=%d, data=%X", cdbus_d_select, cdbus_data);
     end
     fake_mux_output_clock = ~fake_mux_output_clock;
   end
@@ -1350,8 +1375,8 @@ module DNegflipFlop(dbus, abus, Dselect, Bselect, Aselect, bbus, clk, busySelect
   input Aselect;//the other select read bit for this register
   input busySelect;
   input clk;
-  output [31:0] abus;
-  output [31:0] bbus;
+  output  [31:0] abus;
+  output  [31:0] bbus;
   reg [31:0] data;//the actual data for the register
   output reg isBusy;
   input validData;
@@ -1377,4 +1402,22 @@ module DNegflipFlop(dbus, abus, Dselect, Bselect, Aselect, bbus, clk, busySelect
   //if this register has a or b select high, update the a and b bus
   assign abus = Aselect? data : 32'hzzzzzzzz;
   assign bbus = Bselect? data : 32'hzzzzzzzz;
+  /*
+  always @(Aselect) begin
+    if(Aselect) begin
+    abus = data;
+    end
+    else begin
+    abus = 32'hz;
+    end
+  end
+  always @(Bselect) begin
+    if(Bselect) begin
+    bbus = data;
+    end
+    else begin
+    bbus = 32'hz;
+    end
+  end
+  */
 endmodule

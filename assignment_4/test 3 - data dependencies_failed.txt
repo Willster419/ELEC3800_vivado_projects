@@ -1,0 +1,235 @@
+instruction_queue[0] [11:0] = 12'b100_010_001_000;//mult, r2, r1, r0 (r2=0)
+instruction_queue[1] [11:0] = 12'b011_011_100_001;//add, r3, r2, r1 (r3=1)
+
+Vivado Simulator 2017.4
+Time resolution is 1 ps
+reservation station IDs: 001=MULT, 010=ADD, 011=ST, 100=LD
+execution unit IDs:      001=MULT, 010=ADD, 011=LD/ST
+
+Time=                   0,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+request for memory started, memory_address=         z, load_store=z
+mux says 0 inputs, nothing to do
+
+Time=                5000,  clk=1, cycle=          1
+RS ID=1, station          0 is not in use, filling
+request for memory started, memory_address=         Z, load_store=z
+mux says 0 inputs, nothing to do
+RS ID=1, station          0 is in use
+RS ID=1, data for a (regsiter 1) of station          0 is not ready
+RS ID=1, busybus says register 1 for a is up to date for station          0
+RS ID=1, data for b (regsiter 0) of station          0 is not ready
+RS ID=1, busybus says register 0 for b is up to date for station          0
+
+Time=               10000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, station          0 is in use, and operation data is ready, dequeuing for execution
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=               15000,  clk=1, cycle=          2
+execution unit 1 is not busy, accepts new instruction.
+RS ID=2, station          0 is not in use, filling
+mux says 0 inputs, nothing to do
+RS ID=2, station          0 is in use
+RS ID=2, data for a (regsiter 4) of station          0 is not ready
+RS ID=2, busybus says register 4 for a is up to date for station          0
+RS ID=2, data for b (regsiter 1) of station          0 is not ready
+RS ID=2, busybus says register 1 for b is up to date for station          0
+
+Time=               20000,  clk=0
+RS ID=2, station          0 is in use, and operation data is ready, dequeuing for execution
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=               25000,  clk=1, cycle=          3
+execution unit 2 is not busy, accepts new instruction.
+execution unit 1 is busy, counter=         1
+mux says 0 inputs, nothing to do
+
+Time=               30000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=               35000,  clk=1, cycle=          4
+execution unit 2 is busy, counter=         1
+execution unit 1 is busy, counter=         2
+mux says 0 inputs, nothing to do
+
+Time=               40000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=               45000,  clk=1, cycle=          5
+execution unit 2 is busy, counter=         2
+execution unit 1 is busy, counter=         3
+mux says 0 inputs, nothing to do
+
+Time=               50000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=               55000,  clk=1, cycle=          6
+execution unit 2 is busy, counter=         3
+execution complete for execution unit 2, valid data is high
+execution unit 1 is busy, counter=         4
+mux says 1 inputs, set cdbus, no stalling required
+writing to common data bus: dest=3, data=xxxxxxxx
+
+Time=               60000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=               65000,  clk=1, cycle=          7
+execution unit 1 is busy, counter=         5
+execution complete for execution unit 1, valid data is high
+mux says 1 inputs, set cdbus, no stalling required
+writing to common data bus: dest=2, data=00000000
+
+Time=               70000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=               75000,  clk=1, cycle=          8
+mux says 0 inputs, nothing to do
+
+Time=               80000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=               85000,  clk=1, cycle=          9
+mux says 0 inputs, nothing to do
+
+Time=               90000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=               95000,  clk=1, cycle=         10
+mux says 0 inputs, nothing to do
+
+Time=              100000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=              105000,  clk=1, cycle=         11
+mux says 0 inputs, nothing to do
+
+Time=              110000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=              115000,  clk=1, cycle=         12
+mux says 0 inputs, nothing to do
+
+Time=              120000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=              125000,  clk=1, cycle=         13
+mux says 0 inputs, nothing to do
+
+Time=              130000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=              135000,  clk=1, cycle=         14
+mux says 0 inputs, nothing to do
+
+Time=              140000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=              145000,  clk=1, cycle=         15
+mux says 0 inputs, nothing to do
+
+Time=              150000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=              155000,  clk=1, cycle=         16
+mux says 0 inputs, nothing to do
+
+Time=              160000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=              165000,  clk=1, cycle=         17
+mux says 0 inputs, nothing to do
+
+Time=              170000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=              175000,  clk=1, cycle=         18
+mux says 0 inputs, nothing to do
+
+Time=              180000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=              185000,  clk=1, cycle=         19
+mux says 0 inputs, nothing to do
+
+Time=              190000,  clk=0
+RS ID=2, no instructions ready for execution unit, closing outputs
+RS ID=1, no instructions ready for execution unit, closing outputs
+RS ID=3, no instructions ready for execution unit, setting valid data to false
+RS ID=4, no instructions ready for execution unit, setting valid data to false
+memory mux, no load/store reservation stations to output
+
+Time=              195000,  clk=1, cycle=         20
