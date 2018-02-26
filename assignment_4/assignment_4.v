@@ -258,7 +258,7 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data), .store_mux_stall(RS_store_mux_stall),
     //outs
     .a_select_out(a_select_wire), .b_select_out(b_select_wire), .station_full(store_full_flag), .d_select_out(rs_ex_st_d_select),
-    .d_select_out_shift(rs_ex_st_d_select_shift), .abus_out(RS_store_address), .bbus_out(rs_ex_st_bbus_data),
+    .d_select_out_shift(rs_ex_st_d_select_shift), .abus_out(RS_store_address), .bbus_out(RS_store_data),
     .op_code_out(rs_ex_st_op_code), .memory_offset_out(RS_store_mem_ofset), .valid_data(RS_store_valid_data)
   );
   
@@ -374,16 +374,16 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     MULTF 100
     */
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b001_001_000_000;//load, r1, r0,  0 (r1=DEADBEEF)
-    instruction_queue[1] [11:0] = 12'b011_010_001_000;//add,  r2, r1, r0 (r2=DEADBEEF)
-    instruction_queue[2] [11:0] = 12'b000_000_000_000;//
+    instruction_queue[0] [11:0] = 12'b100_010_001_001;//r2=1
+    instruction_queue[1] [11:0] = 12'b011_011_010_001;//r3=2
+    instruction_queue[2] [11:0] = 12'b011_101_001_001;//r5=2
     instruction_queue[3] [11:0] = 12'b000_000_000_000;//
     instruction_queue[4] [11:0] = 12'b000_000_000_000;//
     instruction_queue[5] [11:0] = 12'b000_000_000_000;//
     //memory pre-load
     memory[0] [31:0] = 32'hDEADBEEF;
     memory[1] [31:0] = 32'b0;
-    memory[2] [31:0] = 32'b0;//will be stored here
+    memory[2] [31:0] = 32'b0;// a 1 will be stored here
     memory[3] [31:0] = 32'b0;
   end
   
@@ -432,7 +432,10 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     if(store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag) begin
       //set the busyBus for the regfile
       //if the destination is r0, don't bother cause it's the 0 register
-      busy_select_shift = (current_instruction[8:6] == 3'b0)? 8'b0 : 8'b00000001 << current_instruction[8:6];
+      //also don't set it for stores
+      if(!store_selected_flag) begin
+        busy_select_shift = (current_instruction[8:6] == 3'b0)? 8'b0 : 8'b00000001 << current_instruction[8:6];
+      end
       //busy_select_shift = 8'b00000001 << current_instruction[8:6];
       //shift the entries down from the queue
       //act as the dequeue

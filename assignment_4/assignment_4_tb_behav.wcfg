@@ -13,13 +13,13 @@
    <zoom_setting>
       <ZoomStartTime time="0fs"></ZoomStartTime>
       <ZoomEndTime time="67617154fs"></ZoomEndTime>
-      <Cursor1Time time="300000000fs"></Cursor1Time>
+      <Cursor1Time time="4484000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="198"></NameColumnWidth>
       <ValueColumnWidth column_width="69"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="24" />
+   <WVObjectSize size="12" />
    <wvobject fp_name="/assignment_4_tb/dut/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -54,73 +54,25 @@
       <obj_property name="ObjectShortName">opbus_src_b[2:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/d_select_in" type="array">
-      <obj_property name="ElementShortName">d_select_in[2:0]</obj_property>
-      <obj_property name="ObjectShortName">d_select_in[2:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/d_select_shift_in" type="array">
-      <obj_property name="ElementShortName">d_select_shift_in[7:0]</obj_property>
-      <obj_property name="ObjectShortName">d_select_shift_in[7:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/offset_in" type="array">
-      <obj_property name="ElementShortName">offset_in[2:0]</obj_property>
-      <obj_property name="ObjectShortName">offset_in[2:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/op_code_in" type="array">
-      <obj_property name="ElementShortName">op_code_in[2:0]</obj_property>
-      <obj_property name="ObjectShortName">op_code_in[2:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/memory_in" type="array">
-      <obj_property name="ElementShortName">memory_in[31:0]</obj_property>
-      <obj_property name="ObjectShortName">memory_in[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_data" type="array">
-      <obj_property name="ElementShortName">load_data[31:0]</obj_property>
-      <obj_property name="ObjectShortName">load_data[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/is_busy" type="logic">
-      <obj_property name="ElementShortName">is_busy</obj_property>
-      <obj_property name="ObjectShortName">is_busy</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/valid_data" type="logic">
-      <obj_property name="ElementShortName">valid_data</obj_property>
-      <obj_property name="ObjectShortName">valid_data</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/op_code_out" type="array">
-      <obj_property name="ElementShortName">op_code_out[2:0]</obj_property>
-      <obj_property name="ObjectShortName">op_code_out[2:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/dbus_data_out" type="array">
-      <obj_property name="ElementShortName">dbus_data_out[31:0]</obj_property>
-      <obj_property name="ObjectShortName">dbus_data_out[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/memory_address" type="array">
-      <obj_property name="ElementShortName">memory_address[31:0]</obj_property>
-      <obj_property name="ObjectShortName">memory_address[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/d_select_out" type="array">
-      <obj_property name="ElementShortName">d_select_out[2:0]</obj_property>
-      <obj_property name="ObjectShortName">d_select_out[2:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/load_store_unit/d_select_shift_out" type="array">
-      <obj_property name="ElementShortName">d_select_shift_out[7:0]</obj_property>
-      <obj_property name="ObjectShortName">d_select_shift_out[7:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/smux/cdbus_valid_data" type="logic">
+   <wvobject fp_name="/assignment_4_tb/dut/cdbus_valid_data" type="logic">
       <obj_property name="ElementShortName">cdbus_valid_data</obj_property>
       <obj_property name="ObjectShortName">cdbus_valid_data</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/smux/cdbus_data" type="array">
+   <wvobject fp_name="/assignment_4_tb/dut/cdbus_data" type="array">
       <obj_property name="ElementShortName">cdbus_data[31:0]</obj_property>
       <obj_property name="ObjectShortName">cdbus_data[31:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/smux/cdbus_d_select_shift" type="array">
-      <obj_property name="ElementShortName">cdbus_d_select_shift[7:0]</obj_property>
-      <obj_property name="ObjectShortName">cdbus_d_select_shift[7:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
+   <wvobject fp_name="/assignment_4_tb/dut/cdbus_dest_shift" type="array">
+      <obj_property name="ElementShortName">cdbus_dest_shift[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_dest_shift[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/smux/cdbus_d_select" type="array">
-      <obj_property name="ElementShortName">cdbus_d_select[2:0]</obj_property>
-      <obj_property name="ObjectShortName">cdbus_d_select[2:0]</obj_property>
+   <wvobject fp_name="/assignment_4_tb/dut/cdbus_dest" type="array">
+      <obj_property name="ElementShortName">cdbus_dest[2:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_dest[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/assignment_4_tb/dut/memory" type="array">
+      <obj_property name="ElementShortName">memory[3:0][31:0]</obj_property>
+      <obj_property name="ObjectShortName">memory[3:0][31:0]</obj_property>
+      <obj_property name="isExpanded"></obj_property>
    </wvobject>
 </wave_config>
