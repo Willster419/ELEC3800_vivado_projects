@@ -387,9 +387,9 @@ module assignment_4(reset,clk,ibus,iaddrbus,databus,daddrbus);
     MULTF 100
     */
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b100_010_001_000;//mult, r2, r1, r0 (r2=0)
-    instruction_queue[1] [11:0] = 12'b011_011_010_001;//add, r3, r2, r1 (r3=1)
-    instruction_queue[2] [11:0] = 12'b011_100_001_011;//add, r4, r1, r3 (r4=2)
+    instruction_queue[0] [11:0] = 12'b100_010_001_001;//mult, r2, r1, r1 (r2=1)[0]
+    instruction_queue[1] [11:0] = 12'b011_011_010_001;//add,  r3, r2, r1 (r3=2)[2]
+    instruction_queue[2] [11:0] = 12'b011_101_001_001;//add,  r5, r1, r1 (r5=2)[1]
     instruction_queue[3] [11:0] = 12'b000_000_000_000;//
     instruction_queue[4] [11:0] = 12'b000_000_000_000;//
     instruction_queue[5] [11:0] = 12'b000_000_000_000;//

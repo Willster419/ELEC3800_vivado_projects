@@ -50,7 +50,7 @@ module assignment_4_tb();
     //20MHz = 50ns
     $display("reservation station IDs: 001=MULT, 010=ADD, 011=ST, 100=LD");
     $display("execution unit IDs:      001=MULT, 010=ADD, 011=LD/ST");
-    num_cycles = 20;
+    num_cycles = 30;
     for(i=0;i < num_cycles; i= i+1) begin
       clk=0;
       $display ("\nTime=%t,  clk=%b", $realtime, clk);

@@ -1,9 +1,7 @@
-instruction_queue[0] [11:0] = 12'b100_010_001_001;//mult, r2, r1, r1 (r2=1)
-instruction_queue[1] [11:0] = 12'b011_011_010_001;//add,  r3, r2, r1 (r3=2)
-instruction_queue[2] [11:0] = 12'b011_101_001_001;//add,  r5, r1, r1 (r5=2)
+instruction_queue[0] [11:0] = 12'b100_010_001_001;//mult, r2, r1, r1 (r2=1)[0]
+instruction_queue[1] [11:0] = 12'b011_011_010_001;//add,  r3, r2, r1 (r3=2)[2]
+instruction_queue[2] [11:0] = 12'b011_101_001_001;//add,  r5, r1, r1 (r5=2)[1]
 
-Vivado Simulator 2017.4
-Time resolution is 1 ps
 reservation station IDs: 001=MULT, 010=ADD, 011=ST, 100=LD
 execution unit IDs:      001=MULT, 010=ADD, 011=LD/ST
 
@@ -193,10 +191,3 @@ memory mux, no load/store reservation stations to output
 
 Time=              125000,  clk=1, cycle=         13
 mux says 0 inputs, nothing to do
-
-Time=              130000,  clk=0
-RS ID=2, no instructions ready for execution unit, closing outputs
-RS ID=1, no instructions ready for execution unit, closing outputs
-RS ID=3, no instructions ready for execution unit, setting valid data to false
-RS ID=4, no instructions ready for execution unit, setting valid data to false
-memory mux, no load/store reservation stations to output
