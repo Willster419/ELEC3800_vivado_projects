@@ -49,7 +49,7 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //the address output of the program counter
   //not used for now
   output [31:0] iaddrbus;
-  //the databus or loading and storing data to (big bad) memeory
+  //the databus or loading and storing data to cache
   inout  [31:0] databus;
   //the output calculated value of the the data address bus
   output [31:0] daddrbus;
@@ -197,13 +197,14 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //the reg as the instruction queue
   //first bracket is how wide each register is
   //second bracket is now many in the array
-  //we want 6 instruction queues of 12 bits wide
+  //we want 32 instruction queues of 12 bits wide
   reg [11:0] instruction_queue [5:0];
   reg [11:0] current_instruction;
   
   //the memory interfacing
   wire [31:0] memory_address;
-  reg [31:0] memory [3:0];
+  //we need 32 memorys of 8 bits wide
+  reg [7:0] memory [31:0];
   wire [2:0] load_store;
   wire [31:0] store_data;
   reg [31:0] load_data;
@@ -218,6 +219,7 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire fake_meme_RS_mux_clock;
   
   //the control bit for setting the high bit for the regfile if the dest reg in use
+  //width needs to be the number of regs
   reg [7:0] busy_select_shift;
 
   //register module instance
@@ -234,9 +236,9 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   );
   
   //reservation station instance for added
-  //setting BUS_LENGTH to 2 means it makes 3 of them, indexed 0-2
+  //setting BUS_LENGTH to 3 means it makes 4 of them, indexed 0-3
   //ID=010=ADD
-  reservation_station #(.BUS_LENGTH(2),.ID(3'b010)) FP_add_station
+  reservation_station #(.BUS_LENGTH(3),.ID(3'b010)) FP_add_station
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(FP_add_selected_flag),
@@ -266,9 +268,9 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   );
   
   //reservation station instance for load
-  //setting BUS_LENGTH to 2 means it makes 3 of them, indexed 0-2
+  //setting BUS_LENGTH to 1 means it makes 2 of them, indexed 0-1
   //ID=011=ST
-  reservation_station #(.BUS_LENGTH(2),.ID(3'b011)) store_station
+  reservation_station #(.BUS_LENGTH(1),.ID(3'b011)) store_station
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(store_selected_flag),
@@ -282,9 +284,9 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   );
   
   //reservation station instance for store
-  //setting BUS_LENGTH to 2 means it makes 3 of them, indexed 0-2
+  //setting BUS_LENGTH to 3 means it makes 4 of them, indexed 0-3
   //ID=100=LD
-  reservation_station #(.BUS_LENGTH(2),.ID(3'b100)) load_station
+  reservation_station #(.BUS_LENGTH(3),.ID(3'b100)) load_station
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(load_selected_flag),
@@ -313,7 +315,7 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   
   //execution unit instance for loading/storing
   //ID=11=LD/ST
-  execution_unit #(.CYCLE_TIME(2),.ID(2'b11)) load_store_unit
+  execution_unit #(.CYCLE_TIME(1),.ID(2'b11)) load_store_unit
   (
     //ins
     .clk(clk), .op_code_in(mem_ex_op_code), .d_select_in(mem_ex_d_select), .d_select_shift_in(mem_ex_d_select_shift),
@@ -327,7 +329,7 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   
   //execution unit instance for adding
   //ID=10=FP_ADD
-  execution_unit #(.CYCLE_TIME(3),.ID(2'b10)) FP_add_unit
+  execution_unit #(.CYCLE_TIME(1),.ID(2'b10)) FP_add_unit
   (
     //ins
     .clk(clk), .op_code_in(rs_ex_fp_op_code), .d_select_in(rs_ex_fp_d_select), .d_select_shift_in(rs_ex_fp_d_select_shift),
@@ -380,6 +382,17 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
     current_instruction = 12'b0;
     load_data = 32'bz;
     /*
+    Current specs:
+    3 opcode bits (8 instructions total)
+    3 register bits (8 registers total) [register 0 is the nothing register]
+    32 bit register/bus width
+    format:   000__000 __000    __000
+    add/mult: op __dest__src1   __src2
+    load:     op __dest__address__offset
+    store:    op __src __address__offset
+              (12 bit width)
+    */
+    /*
     Current Instruction List:
     NOP   000
     LD    001
@@ -388,18 +401,18 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
     MULTF 100
     */
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b100_010_001_001;//mult, r2, r1, r1 (r2=1)[0]
-    instruction_queue[1] [11:0] = 12'b011_011_010_001;//add,  r3, r2, r1 (r3=2)[2]
-    instruction_queue[2] [11:0] = 12'b011_101_001_001;//add,  r5, r1, r1 (r5=2)[1]
-    instruction_queue[3] [11:0] = 12'b000_000_000_000;//
+    instruction_queue[0] [11:0] = 12'b001_010_000_000;//ld, r2, 0, 0
+    instruction_queue[1] [11:0] = 12'b001_011_000_001;//ld, r3, 0, 1
+    instruction_queue[2] [11:0] = 12'b011_100_010_011;//add,r4,r2,r3
+    instruction_queue[3] [11:0] = 12'b010_100_000_001;//st, r4, 0, 1
     instruction_queue[4] [11:0] = 12'b000_000_000_000;//
     instruction_queue[5] [11:0] = 12'b000_000_000_000;//
     
     //memory pre-load
-    memory[0] [31:0] = 32'hDEADBEEF;
-    memory[1] [31:0] = 32'b0;
-    memory[2] [31:0] = 32'b0;
-    memory[3] [31:0] = 32'b0;
+    memory[0] [7:0] = 8'd100;
+    memory[1] [7:0] = 8'd0;
+    memory[2] [7:0] = 8'd101;
+    memory[3] [7:0] = 8'd255;
   end
   
   always @(posedge clk) begin
@@ -412,7 +425,7 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
     int_selected_flag = 0;
     //set the busy_select to 0. it only triggers on the posedge so it won't be an issue
     busy_select_shift = 8'b0;
-    //copy the instruction to the current reg
+    //copy the instruction to the current instruction reg
     current_instruction[11:0] = instruction_queue[0];
     case (current_instruction[11:9])
       3'b000: begin
@@ -421,6 +434,7 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
       end
       3'b001: begin
         //LOAD
+        //if the corresponding RS is full, then don't set the corresponding selected flag to full
         load_selected_flag = (load_full_flag)? 0 : 1;
       end
       3'b010: begin
@@ -449,8 +463,6 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
       for(i = 0; i < 5; i=i+1) begin
         instruction_queue[i] = instruction_queue[i+1];
       end
-      //and fill the last one with zeros
-      instruction_queue[5] = 12'b0;
     end
     //invert the clock so that it #triggers the reservation station
     //while also giving the assigns enough time to work
@@ -460,8 +472,8 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //memory address updating block
   always @(memory_address) begin
     //filter out all the z and x
-    $display("request for memory started, memory_address=%d, load_store=%d", memory_address, load_store);
     if((memory_address >= 0) && (load_store > 3'b000)) begin
+      $display("request for memory started, memory_address=%d, load_store=%d", memory_address, load_store);
       load_data = 32'bz;
       case(load_store)
         3'b001: begin
@@ -899,6 +911,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
 endmodule
 
 //the module for creating the execution units
+//execution unit IDs: 001=MULT, 010=ADD, 011=LD/ST
 module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   (
     //in
