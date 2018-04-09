@@ -3,83 +3,88 @@
    <wave_state>
    </wave_state>
    <db_ref_list>
-      <db_ref path="assignment_4_tb_behav.wdb" id="1">
+      <db_ref path="final_project_tb_behav.wdb" id="1">
          <top_modules>
-            <top_module name="assignment_4_tb" />
+            <top_module name="final_project_tb" />
             <top_module name="glbl" />
          </top_modules>
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="50655000fs"></ZoomStartTime>
-      <ZoomEndTime time="164555001fs"></ZoomEndTime>
+      <ZoomStartTime time="217882953fs"></ZoomStartTime>
+      <ZoomEndTime time="316423410fs"></ZoomEndTime>
       <Cursor1Time time="300000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="198"></NameColumnWidth>
-      <ValueColumnWidth column_width="65"></ValueColumnWidth>
+      <NameColumnWidth column_width="197"></NameColumnWidth>
+      <ValueColumnWidth column_width="58"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="14" />
-   <wvobject fp_name="/assignment_4_tb/dut/clk" type="logic">
+   <WVObjectSize size="15" />
+   <wvobject fp_name="/final_project_tb/make_it_rain/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/instruction_queue" type="array">
-      <obj_property name="ElementShortName">instruction_queue[5:0][11:0]</obj_property>
-      <obj_property name="ObjectShortName">instruction_queue[5:0][11:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/make_it_rain/p0_request" type="array">
+      <obj_property name="ElementShortName">p0_request[21:0]</obj_property>
+      <obj_property name="ObjectShortName">p0_request[21:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/current_instruction" type="array">
-      <obj_property name="ElementShortName">current_instruction[11:0]</obj_property>
-      <obj_property name="ObjectShortName">current_instruction[11:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/make_it_rain/previous_p0_request" type="array">
+      <obj_property name="ElementShortName">previous_p0_request[21:0]</obj_property>
+      <obj_property name="ObjectShortName">previous_p0_request[21:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/make_it_rain/request_to_process" type="array">
+      <obj_property name="ElementShortName">request_to_process[21:0]</obj_property>
+      <obj_property name="ObjectShortName">request_to_process[21:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/make_it_rain/requests" type="array">
+      <obj_property name="ElementShortName">requests[1:0]</obj_property>
+      <obj_property name="ObjectShortName">requests[1:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/opbus_op" type="array">
-      <obj_property name="ElementShortName">opbus_op[2:0]</obj_property>
-      <obj_property name="ObjectShortName">opbus_op[2:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/make_it_rain/address_line[0]" type="array">
+      <obj_property name="ElementShortName">[0][21:0]</obj_property>
+      <obj_property name="ObjectShortName">[0][21:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/make_it_rain/temp_address_line" type="array">
+      <obj_property name="ElementShortName">temp_address_line[21:0]</obj_property>
+      <obj_property name="ObjectShortName">temp_address_line[21:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/make_it_rain/address_tag0" type="array">
+      <obj_property name="ElementShortName">address_tag0[10:0]</obj_property>
+      <obj_property name="ObjectShortName">address_tag0[10:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/opbus_dest" type="array">
-      <obj_property name="ElementShortName">opbus_dest[2:0]</obj_property>
-      <obj_property name="ObjectShortName">opbus_dest[2:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/make_it_rain/address_tag1" type="array">
+      <obj_property name="ElementShortName">address_tag1[10:0]</obj_property>
+      <obj_property name="ObjectShortName">address_tag1[10:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/opbus_src_a" type="array">
-      <obj_property name="ElementShortName">opbus_src_a[2:0]</obj_property>
-      <obj_property name="ObjectShortName">opbus_src_a[2:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/make_it_rain/selected_tag" type="array">
+      <obj_property name="ElementShortName">selected_tag[10:0]</obj_property>
+      <obj_property name="ObjectShortName">selected_tag[10:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_add_station/opbus_src_b" type="array">
-      <obj_property name="ElementShortName">opbus_src_b[2:0]</obj_property>
-      <obj_property name="ObjectShortName">opbus_src_b[2:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_mult_station/station_full" type="logic">
-      <obj_property name="ElementShortName">station_full</obj_property>
-      <obj_property name="ObjectShortName">station_full</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_mult_unit/is_busy" type="logic">
+   <wvobject fp_name="/final_project_tb/make_it_rain/is_busy" type="logic">
       <obj_property name="ElementShortName">is_busy</obj_property>
       <obj_property name="ObjectShortName">is_busy</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_mult_unit/valid_data" type="logic">
-      <obj_property name="ElementShortName">valid_data</obj_property>
-      <obj_property name="ObjectShortName">valid_data</obj_property>
+   <wvobject fp_name="/final_project_tb/make_it_rain/cache_line[0]" type="array">
+      <obj_property name="ElementShortName">[0][15:0]</obj_property>
+      <obj_property name="ObjectShortName">[0][15:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/FP_mult_unit/dbus_data_out" type="array">
-      <obj_property name="ElementShortName">dbus_data_out[31:0]</obj_property>
-      <obj_property name="ObjectShortName">dbus_data_out[31:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/make_it_rain/address_line[0]" type="array">
+      <obj_property name="ElementShortName">[0][21:0]</obj_property>
+      <obj_property name="ObjectShortName">[0][21:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/cdbus_valid_data" type="logic">
-      <obj_property name="ElementShortName">cdbus_valid_data</obj_property>
-      <obj_property name="ObjectShortName">cdbus_valid_data</obj_property>
+   <wvobject fp_name="/final_project_tb/make_it_rain/block_offset" type="logic">
+      <obj_property name="ElementShortName">block_offset</obj_property>
+      <obj_property name="ObjectShortName">block_offset</obj_property>
    </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/cdbus_data" type="array">
-      <obj_property name="ElementShortName">cdbus_data[31:0]</obj_property>
-      <obj_property name="ObjectShortName">cdbus_data[31:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/assignment_4_tb/dut/cdbus_dest" type="array">
-      <obj_property name="ElementShortName">cdbus_dest[2:0]</obj_property>
-      <obj_property name="ObjectShortName">cdbus_dest[2:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/make_it_rain/data_out" type="array">
+      <obj_property name="ElementShortName">data_out[21:0]</obj_property>
+      <obj_property name="ObjectShortName">data_out[21:0]</obj_property>
    </wvobject>
 </wave_config>
