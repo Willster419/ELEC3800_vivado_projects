@@ -88,8 +88,9 @@ module final_project_tb();
     //the block offset (1 bits)
     //the data (if a store from processor to memory) (8 bits)
     request_from_p0 [0] = 22'b0_1_01010000000_1_01010101;
+    request_from_p0 [1] = 22'b0_0_01011001000_0_00000000;
     temp_request_from_p1 = 22'bz;
-    num_cycles = 1;
+    num_cycles = 2;
     for(i=0;i < num_cycles; i= i+1) begin
       clk=0;
       $display ("\nTime=%t,  clk=%b", $realtime, clk);
