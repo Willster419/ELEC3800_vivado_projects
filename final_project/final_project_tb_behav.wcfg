@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="217882953fs"></ZoomStartTime>
-      <ZoomEndTime time="316423410fs"></ZoomEndTime>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="98540457fs"></ZoomEndTime>
       <Cursor1Time time="300000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="197"></NameColumnWidth>
       <ValueColumnWidth column_width="58"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="15" />
+   <WVObjectSize size="7" />
    <wvobject fp_name="/final_project_tb/make_it_rain/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -29,62 +29,27 @@
       <obj_property name="ObjectShortName">p0_request[21:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/previous_p0_request" type="array">
-      <obj_property name="ElementShortName">previous_p0_request[21:0]</obj_property>
-      <obj_property name="ObjectShortName">previous_p0_request[21:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/make_it_rain/p1_request" type="array">
+      <obj_property name="ElementShortName">p1_request[21:0]</obj_property>
+      <obj_property name="ObjectShortName">p1_request[21:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/final_project_tb/make_it_rain/request_to_process" type="array">
       <obj_property name="ElementShortName">request_to_process[21:0]</obj_property>
       <obj_property name="ObjectShortName">request_to_process[21:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/final_project_tb/make_it_rain/requests" type="array">
       <obj_property name="ElementShortName">requests[1:0]</obj_property>
       <obj_property name="ObjectShortName">requests[1:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/address_line[0]" type="array">
-      <obj_property name="ElementShortName">[0][21:0]</obj_property>
-      <obj_property name="ObjectShortName">[0][21:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/temp_address_line" type="array">
-      <obj_property name="ElementShortName">temp_address_line[21:0]</obj_property>
-      <obj_property name="ObjectShortName">temp_address_line[21:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/address_tag0" type="array">
-      <obj_property name="ElementShortName">address_tag0[10:0]</obj_property>
-      <obj_property name="ObjectShortName">address_tag0[10:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/address_tag1" type="array">
-      <obj_property name="ElementShortName">address_tag1[10:0]</obj_property>
-      <obj_property name="ObjectShortName">address_tag1[10:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/selected_tag" type="array">
-      <obj_property name="ElementShortName">selected_tag[10:0]</obj_property>
-      <obj_property name="ObjectShortName">selected_tag[10:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
    <wvobject fp_name="/final_project_tb/make_it_rain/is_busy" type="logic">
       <obj_property name="ElementShortName">is_busy</obj_property>
       <obj_property name="ObjectShortName">is_busy</obj_property>
    </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/cache_line[0]" type="array">
-      <obj_property name="ElementShortName">[0][15:0]</obj_property>
-      <obj_property name="ObjectShortName">[0][15:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/address_line[0]" type="array">
-      <obj_property name="ElementShortName">[0][21:0]</obj_property>
-      <obj_property name="ObjectShortName">[0][21:0]</obj_property>
-      <obj_property name="Radix">BINARYRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/block_offset" type="logic">
-      <obj_property name="ElementShortName">block_offset</obj_property>
-      <obj_property name="ObjectShortName">block_offset</obj_property>
-   </wvobject>
    <wvobject fp_name="/final_project_tb/make_it_rain/data_out" type="array">
       <obj_property name="ElementShortName">data_out[21:0]</obj_property>
       <obj_property name="ObjectShortName">data_out[21:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
 </wave_config>

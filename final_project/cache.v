@@ -146,22 +146,28 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
     //remember to disconnect the data line if no output
     //---
     //check if the request has been updated
-    //also check to make sure the request line is not x or z
+    //also check to make sure the request line is not z
     if(p0_request >= 0)begin
-      $display("CACHE: p0_request is valid (not x or z)");
+      $display("CACHE: p0_request is valid (z)");
       //if((previous_p0_request>=0) || (previous_p0_request != p0_request))begin
         $display("CACHE: request from p0 is valid and new");
         requests[0] = 1;
         previous_p0_request = p0_request;
       //end
     end
+    else begin
+      $display("CACHE: p0_request is invalid (z)");
+    end
     if(p1_request >= 0)begin
-      $display("CACHE: p1_request is valid (not x or z)");
+      $display("CACHE: p1_request is valid (z)");
       //if((previous_p1_request>=0) || (previous_p1_request != p1_request))begin
         $display("CACHE: request from p1 is valid and new");
         requests[1] = 1;
         previous_p1_request = p1_request;
       //end
+    end
+    else begin
+      $display("CACHE: p1_request is invalid (z)");
     end
     //check to see how many requests we have
     //if 2, arbitate and set requests to 1, and set busy flag to high

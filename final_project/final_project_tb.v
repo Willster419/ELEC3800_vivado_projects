@@ -87,15 +87,20 @@ module final_project_tb();
     //the tag (11 bits)
     //the block offset (1 bits)
     //the data (if a store from processor to memory) (8 bits)
+    temp_request_from_p0 = 22'bz;
+    temp_request_from_p1 = 22'bz;
     request_from_p0 [0] = 22'b0_1_01010000000_1_01010101;
     request_from_p0 [1] = 22'b0_0_01011001000_0_00000000;
-    temp_request_from_p1 = 22'bz;
+    
+    request_from_p1 [0] = 22'b1_0_01010000000_1_01010101;
+    //request_from_p1 [1] = 22'b1_1_01011001000_0_00000000;
+    request_from_p1 [1] = 22'bz;
     num_cycles = 2;
     for(i=0;i < num_cycles; i= i+1) begin
       clk=0;
       $display ("\nTime=%t,  clk=%b", $realtime, clk);
       #5
-      temp_request_from_p0 = request_from_p0 [i];
+      temp_request_from_p1 = request_from_p1[i];
       clk=1;
       $display ("\nTime=%t,  clk=%b, cycle=%d", $realtime, clk, i+1);
       #5;//5ns delay
