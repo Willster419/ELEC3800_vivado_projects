@@ -77,8 +77,8 @@ module final_project_tb();
     //25MHz = 40ns
     //40MHz = 25ns
     //20MHz = 50ns
-    //$display("reservation station IDs: 001=MULT, 010=ADD, 011=ST, 100=LD");
-    //$display("execution unit IDs:      001=MULT, 010=ADD, 011=LD/ST");
+    $display("reservation station IDs: 001=MULT, 010=ADD, 011=ST, 100=LD");
+    $display("execution unit IDs:      001=MULT, 010=ADD, 011=LD/ST");
     $display("REFRENCE: the request line:\n processor id (1 bit)\n load-store flag (1 bit) (0=load, 1=store)\n the tag (11 bits)\n the block offset (1 bits)\n the data (8 bits)");
     $display("REFRENCE: the data_out line:\n the processor id (1 bit)\n the request type (load/store) (1 bit)\n the tag (11 bits)\n the block offset (1 bits)\n the data (if a load) (8 bits)");
     //the request line:
@@ -89,17 +89,23 @@ module final_project_tb();
     //the data (if a store from processor to memory) (8 bits)
     temp_request_from_p0 = 22'bz;
     temp_request_from_p1 = 22'bz;
-    request_from_p0 [0] = 22'b0_1_01010000000_1_01010101;
-    request_from_p0 [1] = 22'b0_0_01011001000_0_00000000;
     
-    request_from_p1 [0] = 22'b1_0_01010000000_1_01010101;
+    request_from_p0 [0] = 22'b0_1_01010000000_1_00000000;
+    //request_from_p0 [1] = 22'b0_0_01011001000_0_00000000;
+    request_from_p0 [1] = 22'bz;//simulates hold signal
+    request_from_p0 [2] = 22'b0_0_01011010000_0_00000000;
+    
+    request_from_p1 [0] = 22'b1_0_01010000000_1_11111111;
     //request_from_p1 [1] = 22'b1_1_01011001000_0_00000000;
-    request_from_p1 [1] = 22'bz;
-    num_cycles = 2;
+    request_from_p1 [1] = 22'bz;//simulates hold signal
+    request_from_p1 [2] = 22'bz;
+    
+    num_cycles = 3;
     for(i=0;i < num_cycles; i= i+1) begin
       clk=0;
       $display ("\nTime=%t,  clk=%b", $realtime, clk);
       #5
+      temp_request_from_p0 = request_from_p0[i];
       temp_request_from_p1 = request_from_p1[i];
       clk=1;
       $display ("\nTime=%t,  clk=%b, cycle=%d", $realtime, clk, i+1);

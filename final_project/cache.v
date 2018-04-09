@@ -148,7 +148,7 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
     //check if the request has been updated
     //also check to make sure the request line is not z
     if(p0_request >= 0)begin
-      $display("CACHE: p0_request is valid (z)");
+      $display("CACHE: p0_request is valid (%b)",p0_request);
       //if((previous_p0_request>=0) || (previous_p0_request != p0_request))begin
         $display("CACHE: request from p0 is valid and new");
         requests[0] = 1;
@@ -156,10 +156,10 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
       //end
     end
     else begin
-      $display("CACHE: p0_request is invalid (z)");
+      $display("CACHE: p0_request is invalid (%b)",p0_request);
     end
     if(p1_request >= 0)begin
-      $display("CACHE: p1_request is valid (z)");
+      $display("CACHE: p1_request is valid (%b)",p1_request);
       //if((previous_p1_request>=0) || (previous_p1_request != p1_request))begin
         $display("CACHE: request from p1 is valid and new");
         requests[1] = 1;
@@ -167,7 +167,7 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
       //end
     end
     else begin
-      $display("CACHE: p1_request is invalid (z)");
+      $display("CACHE: p1_request is invalid (%b)",p1_request);
     end
     //check to see how many requests we have
     //if 2, arbitate and set requests to 1, and set busy flag to high
@@ -188,16 +188,20 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
       is_busy = 0;
       request_to_process = p1_request;
     end
+    else if ((requests == 2'b00) && is_busy)begin
+      $display("CACHE: processing second request due to busy signal");
+      request_to_process = arbiter? previous_p1_request:previous_p0_request;
+    end
     //if 0, don't do anything
-    if(requests > 0)begin
+    if(requests > 0 || is_busy)begin
       //actually handle the request now
       //request_to_process[21] = processor id
       //request_to_process[20] = load/store bit
       //request_to_process[19:9] = tag/address (11 bits)
       //request_to_process[8] = block offset (1 bits)
       //request_to_process[7:0] = data (8 bits)
-      $display("CACHE: processing request (load/store=%b, tag=%b, offset=%b, data=%b)",
-      request_to_process[20],request_to_process[19:9],request_to_process[8],request_to_process[7:0]);
+      $display("CACHE: processing request (p_id=%b, load/store=%b, tag=%b, offset=%b, data=%b)",
+      request_to_process[21],request_to_process[20],request_to_process[19:9],request_to_process[8],request_to_process[7:0]);
       //there are 16 lines, use a ternary with the block offset to specify which line (first half or second half) to search
       //match the tag first to address_line
       //cache_line -> maybe rename to data_line?
