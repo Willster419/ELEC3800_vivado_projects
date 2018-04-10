@@ -990,6 +990,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
   //so load and store execution cycles are CYCLE_TIME+1 (cause need to wait a cycle for cache access)
   //but all other execution units are fine
   reg [31:0] actual_cycle_time;
+  //reg current_cycle_has_request;
   
   initial begin
     //set all the stuffs to 0
@@ -1002,15 +1003,20 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
     fake_clock = 0;
     counter = 0;
     counter_backup = 0;
+    //current_cycle_has_request = 0;
     actual_cycle_time = (ID==2'b11)? CYCLE_TIME+1 : CYCLE_TIME;
   end
   
   //runs the simulated execution as soon as possible (at the main clock)
   always @(posedge clk) begin
     valid_data = 0;
+    //current_cycle_has_request = 0;
     if(is_busy) begin
       counter = counter + 1;
       $display("execution unit %d is busy, counter=%d",ID, counter);
+      if(ID==2'b11)begin
+        cache_request = 22'bz;
+      end
     end
     else if(cache_busy)begin
       $display("cache reports busy, setting load/sotre ex unit to busy");
@@ -1057,16 +1063,19 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
           //the tag (11 bits)
           //the block offset (1 bits)
           //the data (if a store from processor to memory) (8 bits)
+          //current_cycle_has_request = 1;
           case(op_code_in)
             3'b001: begin
               //load (from "memory", to regfile)
               //send request, wait for return
               cache_request = {CPU_ID,1'b0,address_in[11:4],address_in[2:0],address_in[3],8'b0};
+              $display("executino unit: sending new cache request");
             end
             3'b010: begin
               //store (to "memory", from regfile)
               //send request to store with data
               cache_request = {CPU_ID,1'b1,address_in[11:4],address_in[2:0],address_in[3],bbus_data_in};
+              $display("executino unit: sending new cache request");
             end
           endcase
         end
@@ -1079,9 +1088,9 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
       //if load/store execution unit, check if the data sent from the cache is valid, and for this CPU
       if(ID==2'b11)begin
         if(cache_in >=0)begin
-          $display("cache_in is a valid value, (%b)",cache_in);
+          $display("execution unit: cache_in is a valid value, (%b)",cache_in);
           if(cache_in[21]==CPU_ID)begin
-            $display("cache_in data is for this processor, ID=%d",CPU_ID);
+            $display("execution unit: cache_in data is for this processor, ID=%d",CPU_ID);
             if(cache_in[20])begin//store to cache, no writeback
               dbus_data_out = 8'b0;
               d_select_out = 3'b0;
@@ -1090,9 +1099,18 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
             else begin//load from cache, writeback data
               dbus_data_out = cache_in[7:0];
             end
+            /*
+            //set the output back to z to prevent additional cache accesses
+            //ONLY if this cycle done NOT have a new cache request to send
+            //does not work because it is a cycle behind, solution is to close the output every cycle
+            if(!current_cycle_has_request)begin
+              $display("execution unit: cache data loaded from previous cycle, and no request this cycle, closing output");
+              cache_request = 22'bz;
+            end
+            */
           end
           else begin
-            $display("cache_in data is not for this processor, ID=%d",CPU_ID);
+            $display("execution unit: cache_in data is not for this processor, ID=%d",CPU_ID);
           end
         end
         else begin
