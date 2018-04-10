@@ -259,6 +259,11 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
           end
         end
       endcase
+      //set busy back down so that the processors know they can send again
+      if((requests == 2'b00) && is_busy)begin
+        $display("CACHE: finished with second request from is_busy state, setting it back to false");
+        is_busy =0;
+      end
     end
     else begin
       $display("CACHE: 0 requesets, nothing to do, closing output");

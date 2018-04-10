@@ -189,6 +189,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //second bracket is now many in the array
   //we want 16 instruction queues of 12 bits wide
   reg [17:0] instruction_queue [15:0];
+  reg [17:0] instruction_queue2 [15:0];
   reg [17:0] current_instruction;
   
   //counter for the dequeue for loop
@@ -223,7 +224,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //reservation station instance for added
   //setting BUS_LENGTH to 3 means it makes 4 of them, indexed 0-3
   //ID=010=ADD
-  reservation_station #(.BUS_LENGTH(3),.ID(3'b010)) FP_add_station
+  reservation_station #(.BUS_LENGTH(3),.ID(3'b010),.CPU_ID(CPU_ID)) FP_add_station
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(FP_add_selected_flag),
@@ -239,7 +240,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //reservation station instance for mult
   //setting BUS_LENGTH to 1 means it makes 2 of them, indexed 0-1
   //ID=001=MULT
-  reservation_station #(.BUS_LENGTH(1),.ID(3'b001)) FP_mult_station
+  reservation_station #(.BUS_LENGTH(1),.ID(3'b001),.CPU_ID(CPU_ID)) FP_mult_station
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(FP_mult_selected_flag),
@@ -255,7 +256,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //reservation station instance for load
   //setting BUS_LENGTH to 1 means it makes 2 of them, indexed 0-1
   //ID=011=ST
-  reservation_station #(.BUS_LENGTH(1),.ID(3'b011)) store_station
+  reservation_station #(.BUS_LENGTH(1),.ID(3'b011),.CPU_ID(CPU_ID)) store_station
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(store_selected_flag),
@@ -272,7 +273,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //reservation station instance for store
   //setting BUS_LENGTH to 3 means it makes 4 of them, indexed 0-3
   //ID=100=LD
-  reservation_station #(.BUS_LENGTH(3),.ID(3'b100)) load_station
+  reservation_station #(.BUS_LENGTH(3),.ID(3'b100),.CPU_ID(CPU_ID)) load_station
   (
     //ins
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(load_selected_flag),
@@ -287,7 +288,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   );
   
   //mux instance for joining the two reservation stations
-  partly_smart_mux psmux
+  partly_smart_mux #(.CPU_ID(CPU_ID)) psmux
 (
   //in
   .fake_clock(fake_meme_RS_mux_clock), .load_d_select(RS_load_dest), .load_d_select_shift(RS_load_dest_shift),
@@ -337,7 +338,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   );
   
   //mux instance
-  smart_mux smux
+  smart_mux #(.CPU_ID(CPU_ID)) smux
   (
     //in
     .fake_clock(fake_mux_clock), .mem_valid(mem_mux_valid_data), .FP_mult_valid(FP_mult_mux_valid_data),
@@ -388,11 +389,18 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     ADDF  011
     MULTF 100
     */
-    //fill the instruction queue
+    //fill the instruction queue of p1
     instruction_queue[0] [17:0] = 18'b001_001_010100000000;  //ld, r1,0x500
     instruction_queue[1] [17:0] = 18'b001_010_010100001000;  //ld, r2,0x508
     instruction_queue[2] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
     instruction_queue[3] [17:0] = 18'b010_011_010100001000;  //st, r3,0x508
+    
+    //fill the instruction queue of p2
+    instruction_queue2[0] [17:0] = 18'b001_001_010110000000;  //ld, r1,0x580
+    instruction_queue2[1] [17:0] = 18'b001_010_010110001000;  //ld, r2,0x588
+    instruction_queue2[2] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[3] [17:0] = 18'b010_011_010110001000;  //st, r3,0x588
+    
   end
   
   always @(posedge clk) begin
@@ -405,8 +413,10 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     int_selected_flag = 0;
     //set the busy_select to 0. it only triggers on the posedge so it won't be an issue
     busy_select_shift = 8'b0;
+    current_instruction = 18'b0;
     //copy the instruction to the current instruction reg
-    current_instruction[17:0] = instruction_queue[0];
+    //current_instruction[17:0] = instruction_queue[0];
+    current_instruction[17:0] = CPU_ID? instruction_queue2[0]:instruction_queue[0];
     case (current_instruction[17:15])
       3'b000: begin
         //nop
@@ -440,7 +450,14 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
       //shift the entries down from the queue
       //act as the dequeue
       for(i = 0; i < 15; i=i+1) begin
-        instruction_queue[i] = instruction_queue[i+1];
+        case(CPU_ID)
+          1'b0:begin
+            instruction_queue[i] = instruction_queue[i+1];
+          end
+          1'b1:begin
+            instruction_queue2[i] = instruction_queue2[i+1];
+          end
+        endcase
       end
       //fill the last one with zeros?
     end
@@ -460,7 +477,7 @@ endmodule
 
 //the module for creating the reservation stations
 //default data iwdth is 1, can be changed to allow more width
-module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
+module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
   (
     //ins
     clk, fake_clock, fake_mux_clock, station_selected, opbus_op, opbus_dest, opbus_src_a, opbus_src_b, abus_in, bbus_in, busy_bus,
@@ -619,7 +636,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       if(station_selected) begin:enqueue_op_break
         repeat(BUS_LENGTH+1) begin:enqueue_op_continue
           if(!station_in_use[counter]) begin
-            $display("RS ID=%d, station %d is not in use, filling", ID, counter);
+            $display("CPU_ID=%b, RS ID=%d, station %d is not in use, filling",CPU_ID, ID, counter);
             //update hte value in that counter
             op_code[counter] [2:0] = opbus_op;
             dest_reg_shift[counter] [7:0] = 8'b00000001 << opbus_dest;
@@ -638,7 +655,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
             //also check if it's the last reservation station
             if(counter == BUS_LENGTH) begin
               station_full = 1;
-              $display("RS ID=%d, reservation station is full", ID);
+              $display("CPU_ID=%b, RS ID=%d, reservation station is full", CPU_ID, ID);
             end
             //and disable the loop to prevent accidental updating any more values
             disable enqueue_op_break;
@@ -657,7 +674,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       repeat(BUS_LENGTH+1) begin:data_check_continue
         from_cdb = 0;
         if(station_in_use[counter]) begin
-          $display("RS ID=%d, station %d is in use", ID, counter);
+          $display("CPU_ID=%b, RS ID=%d, station %d is in use", CPU_ID, ID, counter);
           //loads and stores only check the destination busyBus
           //stores check snoop
           //all others do the regular thing
@@ -670,23 +687,23 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
               //then check for WAW
               //if the snopped data is relavent to this store
               if(!operation_data_b_ready[counter]) begin
-                $display("RS ID=%d, store data for dest (regsiter %d) of station %d is not ready", ID, dest_reg[counter], counter);
+                $display("CPU_ID=%b, RS ID=%d, store data for dest (regsiter %d) of station %d is not ready", CPU_ID, ID, dest_reg[counter], counter);
                 if(cdbus_dest == dest_reg[counter]) begin
-                  $display("RS ID=%d, cdbus says store data is relavent (destination register %d) at station %d ", ID, dest_reg[counter], counter);
+                  $display("CPU_ID=%b, RS ID=%d, cdbus says store data is relavent (destination register %d) at station %d ", CPU_ID, ID, dest_reg[counter], counter);
                   //save the data to the bbus to be used for storing (to mem) later
                   from_cdb = 1;
                   bbus_data[counter] = cdbus_dest_data;
                   operation_data_b_ready[counter]=1;
                 end
                 else if(!busy_bus[dest_reg[counter]]) begin
-                  $display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, dest_reg[counter], counter);
+                  $display("CPU_ID=%b, RS ID=%d, busybus says register %d for b is up to date for station %d", CPU_ID, ID, dest_reg[counter], counter);
                   operation_data_b_ready[counter]=1;
                 end
                 if(counter > 0) begin: WAW_check_break_store
                   counter3 = counter-1;
                   repeat(counter) begin
                     if(dest_reg[counter3] == dest_reg[counter])begin
-                      $display("RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
+                      $display("CPU_ID=%b, RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", CPU_ID, ID,counter,counter3);
                       operation_data_b_ready[counter]=0;
                     end
                     counter3 = counter3-1;
@@ -710,17 +727,17 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
               //check if register is checked out(TODO)
               //then check for WAW
               if(!operation_data_b_ready[counter]) begin
-                $display("RS ID=%d, load data for dest (regsiter %d) of station %d is not ready", ID, dest_reg[counter], counter);
+                $display("CPU_ID=%b, RS ID=%d, load data for dest (regsiter %d) of station %d is not ready", CPU_ID, ID, dest_reg[counter], counter);
                 if(1) begin
                 //if(!busy_bus[dest_reg[counter]]) begin
                   //$display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, dest_reg[counter], counter);
-                  $display("RS ID=%d, load always true says register %d for b is up to date for station %d", ID, dest_reg[counter], counter);
+                  $display("CPU_ID=%b, RS ID=%d, load always true says register %d for b is up to date for station %d", CPU_ID, ID, dest_reg[counter], counter);
                   operation_data_b_ready[counter]=1;
                   if(counter > 0) begin: WAW_check_break_load
                     counter3 = counter-1;
                     repeat(counter) begin
                       if(dest_reg[counter3] == dest_reg[counter])begin
-                        $display("RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
+                        $display("CPU_ID=%b, RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", CPU_ID, ID,counter,counter3);
                         operation_data_b_ready[counter]=0;
                       end
                       counter3 = counter3-1;
@@ -749,28 +766,28 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
               //else check if the src and dest are the same
               //then check for WAW
               if(!operation_data_a_ready[counter]) begin
-                $display("RS ID=%d, data for a (regsiter %d) of station %d is not ready", ID, src_a[counter], counter);
+                $display("CPU_ID=%b, RS ID=%d, data for a (regsiter %d) of station %d is not ready", CPU_ID, ID, src_a[counter], counter);
                 //if the snopped data is relavent to this reservation station
                 if(cdbus_dest == src_a[counter]) begin
-                  $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source a at station %d ", ID, cdbus_dest, counter);
+                  $display("CPU_ID=%b, RS ID=%d, cdbus says data is relavent (destination register %d) for source a at station %d ", CPU_ID, ID, cdbus_dest, counter);
                   //update the value with the snopped value and set data ready flag
                   from_cdb = 1;
                   abus_data[counter] = cdbus_dest_data;
                   operation_data_a_ready[counter]=1;
                 end
                 else if(!busy_bus[src_a[counter]]) begin
-                  $display("RS ID=%d, busybus says register %d for a is up to date for station %d", ID, src_a[counter], counter);
+                  $display("CPU_ID=%b, RS ID=%d, busybus says register %d for a is up to date for station %d", CPU_ID, ID, src_a[counter], counter);
                   operation_data_a_ready[counter]=1;
                 end
                 else if(dest_reg[counter] == src_a[counter])begin
-                  $display("RS ID=%d, dest_reg and src_a match (%d) for station %d, ignoring",ID, src_a[counter],counter);
+                  $display("CPU_ID=%b, RS ID=%d, dest_reg and src_a match (%d) for station %d, ignoring",CPU_ID, ID, src_a[counter],counter);
                   operation_data_a_ready[counter]=1;
                 end
                 if(counter > 0) begin: WAW_check_break_a
                   counter3 = counter-1;
                   repeat(counter) begin
                     if(dest_reg[counter3] == src_a[counter])begin
-                      $display("RS ID=%d, setting ready flag for source a of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
+                      $display("CPU_ID=%b, RS ID=%d, setting ready flag for source a of station %d back to false because hazard conflicts with destination of station %d", CPU_ID, ID,counter,counter3);
                       operation_data_a_ready[counter]=0;
                     end
                     counter3 = counter3-1;
@@ -786,14 +803,14 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
                 end
               end
               if(src_a[counter] == src_b[counter]) begin
-                $display("RS ID=%d, src_a and b match(%d), setting match bit and copying data, station %d", ID, src_b[counter], counter);
+                $display("CPU_ID=%b, RS ID=%d, src_a and b match(%d), setting match bit and copying data, station %d", CPU_ID, ID, src_b[counter], counter);
                 a_b_equal[counter] = 1;
                 operation_data_b_ready[counter] = 1;
                 b_update_index_flag = 1;
                 b_update_index = counter;
               end
               else if(!operation_data_b_ready[counter]) begin
-                $display("RS ID=%d, data for b (regsiter %d) of station %d is not ready", ID, src_b[counter], counter);
+                $display("CPU_ID=%b, RS ID=%d, data for b (regsiter %d) of station %d is not ready", CPU_ID, ID, src_b[counter], counter);
                 //check the cdb
                 //else check the register is checked out
                 //else check if the src and dest are the same
@@ -801,24 +818,24 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
                 //if the snopped data is relavent to this reservation station
                 from_cdb = 0;
                 if(cdbus_dest == src_b[counter]) begin
-                  $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source b at station %d ", ID, src_b[counter], counter);
+                  $display("CPU_ID=%b, RS ID=%d, cdbus says data is relavent (destination register %d) for source b at station %d ", CPU_ID, ID, src_b[counter], counter);
                   bbus_data[counter] = cdbus_dest_data;
                   from_cdb = 1;
                   operation_data_b_ready[counter]=1;
                 end
                 else if(!busy_bus[src_b[counter]]) begin
-                  $display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, src_b[counter], counter);
+                  $display("CPU_ID=%b, RS ID=%d, busybus says register %d for b is up to date for station %d", CPU_ID, ID, src_b[counter], counter);
                   operation_data_b_ready[counter]=1;
                 end
                 else if(dest_reg[counter] == src_b[counter])begin
-                  $display("RS ID=%d, dest_reg and src_b match (%d) for station %d, ignoring",ID, src_b[counter],counter);
+                  $display("CPU_ID=%b, RS ID=%d, dest_reg and src_b match (%d) for station %d, ignoring",CPU_ID, ID, src_b[counter],counter);
                   operation_data_b_ready[counter]=1;
                 end
                 if(counter > 0) begin: WAW_check_break_b
                     counter3 = counter-1;
                     repeat(counter) begin
                       if(dest_reg[counter3] == src_b[counter])begin
-                        $display("RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
+                        $display("CPU_ID=%b, RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", CPU_ID, ID,counter,counter3);
                         operation_data_b_ready[counter]=0;
                       end
                       counter3 = counter3-1;
@@ -868,12 +885,12 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
         //end
         if(station_in_use[counter] && operation_data_a_ready[counter] && operation_data_b_ready[counter] && !execution_unit_busy) begin
           if((ID==3'b010) && (store_mux_stall))begin
-            $display("RS ID=%d, stalled due to waiting on mux", ID);
+            $display("CPU_ID=%b, RS ID=%d, stalled due to waiting on mux", CPU_ID, ID);
             valid_data = 1;
             disable data_output_break;
           end
           //set all the stuff and touch the output buses
-          $display("RS ID=%d, station %d is in use, and operation data is ready, dequeuing for execution", ID,counter);
+          $display("CPU_ID=%b, RS ID=%d, station %d is in use, and operation data is ready, dequeuing for execution", CPU_ID, ID,counter);
           output_bus_touched = 1;
           valid_data = 1;
           abus_out = abus_data[counter];
@@ -923,7 +940,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
           a_b_equal[BUS_LENGTH] = 0;
           //and also set the station full flag to low
           if(station_full) begin
-            $display("RS ID=%d, reservation station is no longer full", ID);
+            $display("CPU_ID=%b, RS ID=%d, reservation station is no longer full", CPU_ID, ID);
           end
           station_full = 0;
           disable data_output_break;
@@ -933,12 +950,12 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       //else close the output to stop the execution units
       if(!output_bus_touched) begin
         if((ID==3'b011)||(ID==3'b100)) begin
-          $display("RS ID=%d, no instructions ready for execution unit, setting valid data to false", ID);
+          $display("CPU_ID=%b, RS ID=%d, no instructions ready for execution unit, setting valid data to false", CPU_ID, ID);
           valid_data =0;
           address_out = 12'bz;
         end
         else begin
-          $display("RS ID=%d, no instructions ready for execution unit, closing outputs", ID);
+          $display("CPU_ID=%b, RS ID=%d, no instructions ready for execution unit, closing outputs", CPU_ID, ID);
           abus_out = 8'bz;
           bbus_out = 8'bz;
           d_select_out = 3'bz;
@@ -1023,7 +1040,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     //current_cycle_has_request = 0;
     if(is_busy) begin
       counter = counter + 1;
-      $display("execution unit %d is busy, counter=%d",ID, counter);
+      $display("CPU_ID=%b, execution unit %d is busy, counter=%d",CPU_ID, ID, counter);
       if(ID==2'b11)begin
         cache_request = 22'bz;
       end
@@ -1031,11 +1048,11 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     else if(cache_busy)begin
       $display("cache reports busy, setting load/sotre ex unit to busy");
       is_busy = 1;
-      counter = counter+1;
+      //counter = counter+1;
       cache_request = 22'bz;
     end
     if((!is_busy) && (op_code_in > 0)) begin
-      $display("execution unit %d is not busy, accepts new instruction.",ID);
+      $display("CPU_ID=%b, execution unit %d is not busy, accepts new instruction.",CPU_ID, ID);
       //set the unit to busy
       is_busy = 1;
       //set the index outputs from the inputs
@@ -1043,7 +1060,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
       d_select_shift_out = d_select_shift_in;
       case(ID)
         2'b00: begin//int subtract unit
-          $display("ERROR: this execution unit (SUBT) is not complete yet");
+          $display("CPU_ID=%b, ERROR: this execution unit (SUBT) is not complete yet",CPU_ID);
           case(op_code_in)
             3'b101: begin
               dbus_data_out = abus_data_in - bbus_data_in;
@@ -1079,13 +1096,13 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
               //load (from "memory", to regfile)
               //send request, wait for return
               cache_request = {CPU_ID,1'b0,address_in[11:4],address_in[2:0],address_in[3],8'b0};
-              $display("executino unit: sending new cache request");
+              $display("CPU_ID=%b, executino unit: sending new cache request",CPU_ID);
             end
             3'b010: begin
               //store (to "memory", from regfile)
               //send request to store with data
               cache_request = {CPU_ID,1'b1,address_in[11:4],address_in[2:0],address_in[3],store_dbus_data_in};
-              $display("executino unit: sending new cache request");
+              $display("CPU_ID=%b, executino unit: sending new cache request",CPU_ID);
             end
           endcase
         end
@@ -1094,13 +1111,13 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     //if it equals, the exeuction unit is done
     //however, the mux may just have gotten two inputs
     if(counter == actual_cycle_time) begin
-      $display("execution complete for execution unit %d",ID);
+      $display("execution time complete for execution unit %d",ID);
       //if load/store execution unit, check if the data sent from the cache is valid, and for this CPU
       if(ID==2'b11)begin
         if(cache_in >=0)begin
-          $display("execution unit: cache_in is a valid value, (%b)",cache_in);
+          $display("CPU_ID=%b, execution unit: cache_in is a valid value, (%b)",CPU_ID, cache_in);
           if(cache_in[21]==CPU_ID)begin
-            $display("execution unit: cache_in data is for this processor, ID=%d",CPU_ID);
+            $display("CPU_ID=%b, execution unit: cache_in data is for this processor",CPU_ID);
             if(cache_in[20])begin//store to cache, no writeback
               dbus_data_out = 8'b0;
               d_select_out = 3'b0;
@@ -1120,25 +1137,33 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
             */
           end
           else begin
-            $display("execution unit: cache_in data is not for this processor, ID=%d",CPU_ID);
+            $display("CPU_ID=%b, execution unit: cache_in data is not for this processor, continues to wait",CPU_ID);
           end
         end
         else begin
           $display("cache_in is z");
         end
       end
-      //reset the counter and the busy flag
-      is_busy = 0;
-      counter_backup = counter;
-      counter = 0;
-      //set the write data flag to high
-      //the reg will pick it up at the neg edge
-      valid_data = 1;
+      if(ID==2'b11 && cache_in[21]!=CPU_ID)begin
+        //this captures the processor that should still be waiting
+        valid_data = 0;
+        is_busy = 1;
+        counter = counter-1;
+      end
+      else begin
+        //reset the counter and the busy flag
+        is_busy = 0;
+        counter_backup = counter;
+        counter = 0;
+        //set the write data flag to high
+        //the reg will pick it up at the neg edge
+        valid_data = 1;
+      end
     end
     //hear means that it was stalled by the mux not being ready
     else if(counter > actual_cycle_time) begin
       //valid data needs to stay true for mux to work...
-      $display("(posedge clk) execution unit %d stalled by mux, setting valid back to true", ID);
+      $display("CPU_ID=%b, (posedge clk) execution unit %d stalled by mux, setting valid back to true", CPU_ID, ID);
       valid_data = 1;
     end
     fake_clock = ~fake_clock;
@@ -1146,7 +1171,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   
   //stall trigger for the cdbus mux, disable the execution unit
   always @(posedge stall_by_mux) begin
-    $display("(posedge stall_by_mux) posedge stall_by_mux detected for execution unit %d, set self to busy",ID);
+    $display("CPU_ID=%b, (posedge stall_by_mux) posedge stall_by_mux detected for execution unit %d, set self to busy",CPU_ID, ID);
     is_busy = 1;
     counter = counter_backup;
   end
@@ -1155,7 +1180,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   //can therefore execute next instruction
   always @(negedge stall_by_mux) begin
     if(counter > actual_cycle_time) begin
-      $display("(negedge stall_by_mux) negedge stall_by_mux detected for execution unit %d with counter > CYCLE_TIME true, self no longer busy",ID);
+      $display("CPU_ID=%b, (negedge stall_by_mux) negedge stall_by_mux detected for execution unit %d with counter > CYCLE_TIME true, self no longer busy",CPU_ID, ID);
       //mux just put it's data on the bus, can set busy to false
       is_busy = 0;
       counter = 0;
@@ -1165,7 +1190,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
 endmodule
 
 //the mux to use as the bit arbitor
-module smart_mux
+module smart_mux #(parameter CPU_ID=1'b0)
 (
   //in
   fake_clock, mem_valid, FP_mult_valid, FP_add_valid, int_valid, mem_d_select, FP_mult_d_select, FP_add_d_select,
@@ -1235,7 +1260,7 @@ module smart_mux
     if(int_valid)
       how_many_inputs = how_many_inputs +1;
     if(how_many_inputs == 0) begin
-      $display("mux says 0 inputs, nothing to do");
+      $display("CPU_ID=%b, mux says 0 inputs, nothing to do",CPU_ID);
       cdbus_valid_data = 0;
       cdbus_d_select = 3'bz;
       cdbus_d_select_shift = 8'bz;
@@ -1246,7 +1271,7 @@ module smart_mux
       int_stall = 0;
     end
     else if(how_many_inputs == 1) begin
-      $display("mux says 1 inputs, set cdbus, no stalling required");
+      $display("CPU_ID=%b, mux says 1 inputs, set cdbus, no stalling required",CPU_ID);
       mem_stall = 0;
       FP_mult_stall = 0;
       FP_add_stall = 0;
@@ -1276,9 +1301,9 @@ module smart_mux
     end
     //go in the order of the if else blocks
     else if(how_many_inputs > 1) begin
-      $display("mux says %d inputs, set cdbus, stalling required", how_many_inputs);
-      $display("before arbitration, FP_mult_valid=%b, FP_add_valid=%b, mem_valid=%b, int_valid=%b",FP_mult_valid,FP_add_valid,mem_valid,int_valid);
-      $display("before arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", FP_mult_stall, FP_add_stall, mem_stall,int_stall);
+      $display("CPU_ID=%b, mux says %d inputs, set cdbus, stalling required", CPU_ID, how_many_inputs);
+      $display("CPU_ID=%b, before arbitration, FP_mult_valid=%b, FP_add_valid=%b, mem_valid=%b, int_valid=%b",CPU_ID, FP_mult_valid,FP_add_valid,mem_valid,int_valid);
+      $display("CPU_ID=%b, before arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", CPU_ID, FP_mult_stall, FP_add_stall, mem_stall,int_stall);
       if(FP_mult_valid) begin
         cdbus_d_select = FP_mult_d_select;
         cdbus_d_select_shift = FP_mult_d_select_shift;
@@ -1303,17 +1328,17 @@ module smart_mux
         FP_add_stall = FP_add_valid? 1:0;
         int_stall = int_valid? 1:0;
       end
-      $display("after arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", FP_mult_stall, FP_add_stall, mem_stall,int_stall);
+      $display("CPU_ID=%b, after arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", CPU_ID, FP_mult_stall, FP_add_stall, mem_stall,int_stall);
     end
     if(how_many_inputs > 0) begin
-      $display("writing to common data bus: dest=%d, data=%b, valid_data=%b", cdbus_d_select, cdbus_data, cdbus_valid_data);
+      $display("CPU_ID=%b, writing to common data bus: dest=%d, data=%b, valid_data=%b", CPU_ID, cdbus_d_select, cdbus_data, cdbus_valid_data);
     end
     fake_mux_output_clock = ~fake_mux_output_clock;
   end
 endmodule
 
 //the mux module for choosing between the load and store RS
-module partly_smart_mux
+module partly_smart_mux #(parameter CPU_ID=1'b0)
 (
   //in
   fake_clock, load_d_select, load_d_select_shift, load_address, load_offset, store_dbus_data, store_address, store_offset,
@@ -1361,7 +1386,7 @@ module partly_smart_mux
   //handle mux selection/arbitration
   always @(fake_clock)begin
     if(execution_unit_stall && stall_by_mux) begin
-      $display("partly smart mux stalled due to execution/mux stall");
+      $display("CPU_ID=%b, partly smart mux stalled due to execution/mux stall",CPU_ID);
     end
     else begin
       how_many_outputs = 0;
@@ -1372,7 +1397,7 @@ module partly_smart_mux
         how_many_outputs = how_many_outputs+1;
       end
       if(how_many_outputs ==0) begin
-        $display("memory mux, no load/store reservation stations to output");
+        $display("CPU_ID=%b, memory mux, no load/store reservation stations to output",CPU_ID);
         store_stall = 0;
         exec_d_select = 3'bz;
         exec_b_offset = 3'bz;
@@ -1382,7 +1407,7 @@ module partly_smart_mux
         exec_op_code = 3'bz;
       end
       else if(how_many_outputs == 1)begin
-        $display("memory mux, one load/store reservation stations to output");
+        $display("CPU_ID=%b, memory mux, one load/store reservation stations to output",CPU_ID);
         store_stall = 0;
         if(valid_load_data > 0) begin
           //not matter
@@ -1406,7 +1431,7 @@ module partly_smart_mux
         end
       end
       else if(how_many_outputs > 1)begin
-        $display("memory mux, two load/store reservation stations to output, stall stores");
+        $display("CPU_ID=%b, memory mux, two load/store reservation stations to output, stall stores",CPU_ID);
         store_stall = 1;
         //not matter
         exec_dbus_data = 8'b0;
@@ -1418,7 +1443,6 @@ module partly_smart_mux
         exec_op_code = load_op_code;
       end
     end
-    
   end
 endmodule
 

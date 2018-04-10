@@ -11,46 +11,100 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="98540457fs"></ZoomEndTime>
+      <ZoomStartTime time="46869000fs"></ZoomStartTime>
+      <ZoomEndTime time="161469001fs"></ZoomEndTime>
       <Cursor1Time time="300000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="197"></NameColumnWidth>
+      <NameColumnWidth column_width="193"></NameColumnWidth>
       <ValueColumnWidth column_width="58"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="7" />
+   <WVObjectSize size="18" />
    <wvobject fp_name="/final_project_tb/make_it_rain/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
    </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/p0_request" type="array">
-      <obj_property name="ElementShortName">p0_request[21:0]</obj_property>
-      <obj_property name="ObjectShortName">p0_request[21:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/dut2/current_instruction" type="array">
+      <obj_property name="ElementShortName">current_instruction[17:0]</obj_property>
+      <obj_property name="ObjectShortName">current_instruction[17:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/p1_request" type="array">
-      <obj_property name="ElementShortName">p1_request[21:0]</obj_property>
-      <obj_property name="ObjectShortName">p1_request[21:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/dut2/load_store_unit/d_select_in" type="array">
+      <obj_property name="ElementShortName">d_select_in[2:0]</obj_property>
+      <obj_property name="ObjectShortName">d_select_in[2:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/request_to_process" type="array">
-      <obj_property name="ElementShortName">request_to_process[21:0]</obj_property>
-      <obj_property name="ObjectShortName">request_to_process[21:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/dut2/load_store_unit/d_select_shift_in" type="array">
+      <obj_property name="ElementShortName">d_select_shift_in[7:0]</obj_property>
+      <obj_property name="ObjectShortName">d_select_shift_in[7:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/requests" type="array">
-      <obj_property name="ElementShortName">requests[1:0]</obj_property>
-      <obj_property name="ObjectShortName">requests[1:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/dut2/load_store_unit/store_dbus_data_in" type="array">
+      <obj_property name="ElementShortName">store_dbus_data_in[7:0]</obj_property>
+      <obj_property name="ObjectShortName">store_dbus_data_in[7:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/is_busy" type="logic">
-      <obj_property name="ElementShortName">is_busy</obj_property>
-      <obj_property name="ObjectShortName">is_busy</obj_property>
+   <wvobject fp_name="/final_project_tb/dut2/load_store_unit/cache_busy" type="logic">
+      <obj_property name="ElementShortName">cache_busy</obj_property>
+      <obj_property name="ObjectShortName">cache_busy</obj_property>
    </wvobject>
-   <wvobject fp_name="/final_project_tb/make_it_rain/data_out" type="array">
-      <obj_property name="ElementShortName">data_out[21:0]</obj_property>
-      <obj_property name="ObjectShortName">data_out[21:0]</obj_property>
+   <wvobject fp_name="/final_project_tb/dut2/load_store_unit/dbus_data_out" type="array">
+      <obj_property name="ElementShortName">dbus_data_out[7:0]</obj_property>
+      <obj_property name="ObjectShortName">dbus_data_out[7:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut2/load_store_unit/d_select_out" type="array">
+      <obj_property name="ElementShortName">d_select_out[2:0]</obj_property>
+      <obj_property name="ObjectShortName">d_select_out[2:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut2/load_store_unit/d_select_shift_out" type="array">
+      <obj_property name="ElementShortName">d_select_shift_out[7:0]</obj_property>
+      <obj_property name="ObjectShortName">d_select_shift_out[7:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut2/smux/mem_d_select" type="array">
+      <obj_property name="ElementShortName">mem_d_select[2:0]</obj_property>
+      <obj_property name="ObjectShortName">mem_d_select[2:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut2/smux/mem_d_select_shift" type="array">
+      <obj_property name="ElementShortName">mem_d_select_shift[7:0]</obj_property>
+      <obj_property name="ObjectShortName">mem_d_select_shift[7:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut2/smux/mem_data" type="array">
+      <obj_property name="ElementShortName">mem_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">mem_data[7:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut2/smux/cdbus_d_select" type="array">
+      <obj_property name="ElementShortName">cdbus_d_select[2:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_d_select[2:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut2/smux/cdbus_d_select_shift" type="array">
+      <obj_property name="ElementShortName">cdbus_d_select_shift[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_d_select_shift[7:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut2/smux/cdbus_data" type="array">
+      <obj_property name="ElementShortName">cdbus_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_data[7:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut2/smux/cdbus_valid_data" type="logic">
+      <obj_property name="ElementShortName">cdbus_valid_data</obj_property>
+      <obj_property name="ObjectShortName">cdbus_valid_data</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/make_it_rain/cache_line[0]" type="array">
+      <obj_property name="ElementShortName">[0][15:0]</obj_property>
+      <obj_property name="ObjectShortName">[0][15:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/make_it_rain/cache_line[8]" type="array">
+      <obj_property name="ElementShortName">[8][15:0]</obj_property>
+      <obj_property name="ObjectShortName">[8][15:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
 </wave_config>
