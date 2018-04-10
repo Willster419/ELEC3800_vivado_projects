@@ -1419,7 +1419,7 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
   fake_clock, load_d_select, load_d_select_shift, load_address, load_offset, store_dbus_data, store_address, store_offset,
   valid_load_data, valid_store_data, load_op_code, store_op_code, execution_unit_stall, stall_by_mux,
   //out
-  store_stall, exec_d_select, exec_d_select_shift, exec_b_offset, exec_dbus_data, exec_abus_address, exec_op_code
+  store_stall, exec_d_select, exec_d_select_shift, exec_b_offset, exec_dbus_data, exec_abus_address, exec_op_code, load_stall
 );
   //the fake clock from the reservation station
   input fake_clock;
@@ -1437,7 +1437,7 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
   input [2:0] store_op_code;
   input execution_unit_stall;
   input stall_by_mux;
-  //the outputs for stalling the store reservation station
+  //the outputs for stalling the store or load reservation station
   output reg store_stall;
   output reg [2:0] exec_d_select;
   output reg [7:0] exec_d_select_shift;
@@ -1445,8 +1445,13 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
   output reg [7:0] exec_dbus_data;
   output reg [11:0] exec_abus_address;
   output reg [2:0] exec_op_code;
-  //counter for how many stations want to go
-  reg [7:0] how_many_outputs;
+  output reg load_stall;
+  //reg to keep track of which of the stations has valid inputs
+  //index 0 is load, 1 is store
+  reg [1:0] how_many_outputs;
+  //reg [7:0] how_many_outputs;
+  //the arbiterfor determining which of the load and stores will go
+  reg arbiter;
   
   initial begin
     store_stall = 0;
@@ -1456,6 +1461,8 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
     exec_dbus_data = 8'bz;
     exec_abus_address = 12'bz;
     exec_op_code = 3'bz;
+    arbiter = 1'b0;
+    how_many_outputs = 2'b00;
   end
   
   //handle mux selection/arbitration
@@ -1464,37 +1471,29 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
       $display("CPU_ID=%b, partly smart mux stalled due to execution/mux stall",CPU_ID);
     end
     else begin
-      how_many_outputs = 0;
+      how_many_outputs = 2'b00;
       if(valid_load_data > 0) begin
-        how_many_outputs = how_many_outputs+1;
+        how_many_outputs[0] = 1'b1;
       end
       if(valid_store_data > 0) begin
-        how_many_outputs = how_many_outputs+1;
+        how_many_outputs[1] = 1'b1;
       end
-      if(how_many_outputs ==0) begin
-        $display("CPU_ID=%b, memory mux, no load/store reservation stations to output",CPU_ID);
-        store_stall = 0;
-        exec_d_select = 3'bz;
-        exec_b_offset = 3'bz;
-        exec_d_select_shift = 8'bz;
-        exec_dbus_data = 8'bz;
-        exec_abus_address = 12'bz;
-        exec_op_code = 3'bz;
-      end
-      else if(how_many_outputs == 1)begin
-        $display("CPU_ID=%b, memory mux, one load/store reservation stations to output",CPU_ID);
-        store_stall = 0;
-        if(valid_load_data > 0) begin
-          //not matter
-          exec_dbus_data = 8'b0;
-          //matter
-          exec_b_offset = load_offset;
-          exec_d_select = load_d_select;
-          exec_d_select_shift = load_d_select_shift;
-          exec_abus_address = load_address;
-          exec_op_code = load_op_code;
+      case(how_many_outputs)
+        2'b00:begin//none
+          $display("CPU_ID=%b, memory mux, no load/store reservation stations outputting",CPU_ID);
+          store_stall = 0;
+          load_stall = 0;
+          exec_d_select = 3'bz;
+          exec_b_offset = 3'bz;
+          exec_d_select_shift = 8'bz;
+          exec_dbus_data = 8'bz;
+          exec_abus_address = 12'bz;
+          exec_op_code = 3'bz;
         end
-        else if(valid_store_data > 0) begin
+        2'b01:begin//one store
+          $display("CPU_ID=%b, memory mux, one store reservation stations outputting",CPU_ID);
+          store_stall=0;
+          load_stall = 0;
           //not matter
           exec_d_select = 3'b0;
           exec_d_select_shift = 8'b00000001;
@@ -1504,19 +1503,33 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
           exec_abus_address = store_address;
           exec_op_code = store_op_code;
         end
-      end
-      else if(how_many_outputs > 1)begin
-        $display("CPU_ID=%b, memory mux, two load/store reservation stations to output, stall stores",CPU_ID);
-        store_stall = 1;
-        //not matter
-        exec_dbus_data = 8'b0;
-        //matter
-        exec_b_offset = load_offset;
-        exec_d_select = load_d_select;
-        exec_d_select_shift = load_d_select_shift;
-        exec_abus_address = load_address;
-        exec_op_code = load_op_code;
-      end
+        2'b10:begin//one load
+          $display("CPU_ID=%b, memory mux, one load reservation stations outputting",CPU_ID);
+          store_stall=0;
+          load_stall=0;
+          //not matter
+          exec_dbus_data = 8'b0;
+          //matter
+          exec_b_offset = load_offset;
+          exec_d_select = load_d_select;
+          exec_d_select_shift = load_d_select_shift;
+          exec_abus_address = load_address;
+          exec_op_code = load_op_code;
+        end
+        2'b11:begin//both
+          $display("CPU_ID=%b, memory mux, two load/store reservation stations outputting, arbiting",CPU_ID);
+          //0=load,1=store
+          store_stall = arbiter? 0:1;
+          load_stall = arbiter? 1:0;
+          exec_dbus_data = arbiter? store_dbus_data:8'b0;
+          exec_b_offset = arbiter? store_offset:load_offset;
+          exec_d_select = arbiter? 8'b0:load_d_select;
+          exec_d_select_shift = arbiter? 8'b00000001:load_d_select_shift;
+          exec_abus_address = arbiter? store_address:load_address;
+          exec_op_code = arbiter? store_op_code:load_op_code;
+          arbiter=~arbiter;
+        end
+      endcase
     end
   end
 endmodule
