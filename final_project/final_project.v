@@ -187,9 +187,9 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //the reg as the instruction queue
   //first bracket is how wide each register is
   //second bracket is now many in the array
-  //we want 16 instruction queues of 12 bits wide
-  reg [17:0] instruction_queue [15:0];
-  reg [17:0] instruction_queue2 [15:0];
+  //we want 32 instruction queues of 18 bits wide
+  reg [17:0] instruction_queue [31:0];
+  reg [17:0] instruction_queue2 [31:0];
   reg [17:0] current_instruction;
   
   //counter for the dequeue for loop
@@ -390,17 +390,90 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     MULTF 100
     */
     //fill the instruction queue of p1
+    ///////////////////////////////////////////////////////////////////////
     instruction_queue[0] [17:0] = 18'b001_001_010100000000;  //ld, r1,0x500
     instruction_queue[1] [17:0] = 18'b001_010_010100001000;  //ld, r2,0x508
     instruction_queue[2] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
     instruction_queue[3] [17:0] = 18'b010_011_010100001000;  //st, r3,0x508
+    ///////////////////////////////////////////////////////////////////////
+    instruction_queue[4] [17:0] = 18'b001_001_010100010000;  //ld, r1,0x510
+    instruction_queue[5] [17:0] = 18'b001_010_010100011000;  //ld, r2,0x518
+    instruction_queue[6] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue[7] [17:0] = 18'b010_011_010100011000;  //st, r3,0x518
+    ///////////////////////////////////////////////////////////////////////
+    instruction_queue[8] [17:0] = 18'b001_001_010100100000;  //ld, r1,0x520
+    instruction_queue[9] [17:0] = 18'b001_010_010100101000;  //ld, r2,0x528
+    instruction_queue[10] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue[11] [17:0] = 18'b010_011_010100101000;  //st, r3,0x528
+    ///////////////////////////////////////////////////////////////////////
+    instruction_queue[12] [17:0] = 18'b001_001_010100110000;  //ld, r1,0x530
+    instruction_queue[13] [17:0] = 18'b001_010_010100111000;  //ld, r2,0x538
+    instruction_queue[14] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue[15] [17:0] = 18'b010_011_010100111000;  //st, r3,0x538
+    ///////////////////////////////////////////////////////////////////////
+    instruction_queue[16] [17:0] = 18'b001_001_010101000000;  //ld, r1,0x540
+    instruction_queue[17] [17:0] = 18'b001_010_010101001000;  //ld, r2,0x548
+    instruction_queue[18] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue[19] [17:0] = 18'b010_011_010101001000;  //st, r3,0x548
+    ///////////////////////////////////////////////////////////////////////
+    instruction_queue[20] [17:0] = 18'b001_001_010101010000;  //ld, r1,0x550
+    instruction_queue[21] [17:0] = 18'b001_010_010101011000;  //ld, r2,0x558
+    instruction_queue[22] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue[23] [17:0] = 18'b010_011_010101011000;  //st, r3,0x558
+    ///////////////////////////////////////////////////////////////////////
+    instruction_queue[24] [17:0] = 18'b001_001_010101100000;  //ld, r1,0x560
+    instruction_queue[25] [17:0] = 18'b001_010_010101101000;  //ld, r2,0x568
+    instruction_queue[26] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue[27] [17:0] = 18'b010_011_010101101000;  //st, r3,0x568
+    ///////////////////////////////////////////////////////////////////////
+    instruction_queue[28] [17:0] = 18'b001_001_010101110000;  //ld, r1,0x570
+    instruction_queue[29] [17:0] = 18'b001_010_010101111000;  //ld, r2,0x578
+    instruction_queue[30] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue[31] [17:0] = 18'b010_011_010101111000;  //st, r3,0x578
+    ///////////////////////////////////////////////////////////////////////
     
     //fill the instruction queue of p2
+    ////////////////////////////////////////////////////////////////////////
     instruction_queue2[0] [17:0] = 18'b001_001_010110000000;  //ld, r1,0x580
     instruction_queue2[1] [17:0] = 18'b001_010_010110001000;  //ld, r2,0x588
     instruction_queue2[2] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
     instruction_queue2[3] [17:0] = 18'b010_011_010110001000;  //st, r3,0x588
-    
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue2[4] [17:0] = 18'b001_001_010110010000;  //ld, r1,0x590
+    instruction_queue2[5] [17:0] = 18'b001_010_010110011000;  //ld, r2,0x598
+    instruction_queue2[6] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[7] [17:0] = 18'b010_011_010110011000;  //st, r3,0x598
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue2[8] [17:0] = 18'b001_001_010110100000;  //ld, r1,0x5A0
+    instruction_queue2[9] [17:0] = 18'b001_010_010110101000;  //ld, r2,0x5A8
+    instruction_queue2[10] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[11] [17:0] = 18'b010_011_010110101000;  //st, r3,0x5A8
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue2[12] [17:0] = 18'b001_001_010110110000;  //ld, r1,0x5B0
+    instruction_queue2[13] [17:0] = 18'b001_010_010110111000;  //ld, r2,0x5B8
+    instruction_queue2[14] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[15] [17:0] = 18'b010_011_010110111000;  //st, r3,0x5B8
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue2[16] [17:0] = 18'b001_001_010111000000;  //ld, r1,0x5C0
+    instruction_queue2[17] [17:0] = 18'b001_010_010111001000;  //ld, r2,0x5C8
+    instruction_queue2[18] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[19] [17:0] = 18'b010_011_010111001000;  //st, r3,0x5C8
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue2[20] [17:0] = 18'b001_001_010111010000;  //ld, r1,0x5D0
+    instruction_queue2[21] [17:0] = 18'b001_010_010111011000;  //ld, r2,0x5D8
+    instruction_queue2[22] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[23] [17:0] = 18'b010_011_010111011000;  //st, r3,0x5D8
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue2[24] [17:0] = 18'b001_001_010111100000;  //ld, r1,0x5E0
+    instruction_queue2[25] [17:0] = 18'b001_010_010111101000;  //ld, r2,0x5E8
+    instruction_queue2[26] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[27] [17:0] = 18'b010_011_010111101000;  //st, r3,0x5E8
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue2[28] [17:0] = 18'b001_001_010111110000;  //ld, r1,0x5F0
+    instruction_queue2[29] [17:0] = 18'b001_010_010111111000;  //ld, r2,0x5F8
+    instruction_queue2[30] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[31] [17:0] = 18'b010_011_010111111000;  //st, r3,0x5F8
+    ////////////////////////////////////////////////////////////////////////
   end
   
   always @(posedge clk) begin
@@ -459,7 +532,9 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
           end
         endcase
       end
-      //fill the last one with zeros?
+      //fill the last one with zeros
+      instruction_queue[31] = 18'b0;
+      instruction_queue[31] = 18'b0;
     end
     //invert the clock so that it #triggers the reservation station
     //while also giving the assigns enough time to work
