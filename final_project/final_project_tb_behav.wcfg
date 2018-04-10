@@ -32,6 +32,7 @@
    <wvobject fp_name="/final_project_tb/make_it_rain/p1_request" type="array">
       <obj_property name="ElementShortName">p1_request[21:0]</obj_property>
       <obj_property name="ObjectShortName">p1_request[21:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/final_project_tb/make_it_rain/request_to_process" type="array">
       <obj_property name="ElementShortName">request_to_process[21:0]</obj_property>
