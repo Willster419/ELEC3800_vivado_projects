@@ -386,7 +386,10 @@ module final_project(clk,cache_request,cache_data,cache_busy);
     MULTF 100
     */
     //fill the instruction queue
-    instruction_queue[0] [17:0] = 18'b001_001_010100000000;//ld,r1,0x500
+    instruction_queue[0] [17:0] = 18'b001_001_010100000000;  //ld, r1,0x500
+    instruction_queue[1] [17:0] = 18'b001_010_010100001000;  //ld, r2,0x508
+    instruction_queue[2] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue[3] [17:0] = 18'b010_011_010100001000;  //st, r3,0x508
   end
   
   always @(posedge clk) begin
@@ -1074,7 +1077,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
             3'b010: begin
               //store (to "memory", from regfile)
               //send request to store with data
-              cache_request = {CPU_ID,1'b1,address_in[11:4],address_in[2:0],address_in[3],bbus_data_in};
+              cache_request = {CPU_ID,1'b1,address_in[11:4],address_in[2:0],address_in[3],store_dbus_data_in};
               $display("executino unit: sending new cache request");
             end
           endcase
