@@ -59,13 +59,16 @@ module final_project_tb();
     .p0_request(p0_request),
     .p1_request(p1_request),
     .data_out(data_out),
-    .is_busy(is_busy)
+    .is_busy(cache_busy)
   );
   
+  //module final_project(clk,cache_request,cache_data,cache_busy);
   final_project dut
   (
-    .clk(clk)
-    
+    .clk(clk),
+    .cache_request(p0_request),
+    .cache_data(data_out),
+    .cache_busy(cache_busy)
   );
   
   
@@ -100,7 +103,7 @@ module final_project_tb();
     request_from_p1 [2] = 22'bz;
     ///////////////////////////////////////////////////////////*/
     
-    num_cycles = 3;
+    num_cycles = 4;
     for(i=0;i < num_cycles; i= i+1) begin
       clk=0;
       $display ("\nTime=%t,  clk=%b", $realtime, clk);

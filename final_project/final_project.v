@@ -54,6 +54,7 @@ module final_project(clk,cache_request,cache_data,cache_busy);
   wire [2:0] opbus_dest;
   wire [2:0] opbus_src_a;
   wire [2:0] opbus_src_b;
+  wire [11:0] cache_address;
   
   //the wires used for the common data bus
   //connects the mux to the regfile and reservation statrions
@@ -166,8 +167,8 @@ module final_project(clk,cache_request,cache_data,cache_busy);
   //both
   wire [2:0] RS_load_mem_ofset;//b select
   wire [2:0] RS_store_mem_ofset;//b select
-  wire [7:0] RS_load_address;//a data
-  wire [7:0] RS_store_address;//a data
+  wire [11:0] RS_load_address;//a data
+  wire [11:0] RS_store_address;//a data
   //store
   wire RS_store_mux_stall;
   wire [7:0] RS_store_data;//dbus data
@@ -180,15 +181,15 @@ module final_project(clk,cache_request,cache_data,cache_busy);
   wire [7:0] mem_ex_d_select_shift;
   wire [2:0] mem_ex_b_offset;
   wire [7:0] mem_ex_dbus_data;
-  wire [7:0] mem_ex_abus_address;
+  wire [11:0] mem_ex_abus_address;
   wire [2:0] mem_ex_op_code;
   
   //the reg as the instruction queue
   //first bracket is how wide each register is
   //second bracket is now many in the array
-  //we want 32 instruction queues of 12 bits wide
-  reg [11:0] instruction_queue [5:0];
-  reg [11:0] current_instruction;
+  //we want 16 instruction queues of 12 bits wide
+  reg [17:0] instruction_queue [15:0];
+  reg [17:0] current_instruction;
   
   //counter for the dequeue for loop
   integer i;
@@ -258,9 +259,10 @@ module final_project(clk,cache_request,cache_data,cache_busy);
     .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire_ld_st),
     .bbus_in(bbus_wire_ld_st), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_ld_st_is_busy), .cdbus_dest(cdbus_dest),
     .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data), .store_mux_stall(RS_store_mux_stall),
+    .address_in(cache_address),
     //outs
     .a_select_out(a_select_wire_ld_st), .b_select_out(b_select_wire_ld_st), .station_full(store_full_flag), .d_select_out(rs_ex_st_d_select),
-    .d_select_out_shift(rs_ex_st_d_select_shift), .abus_out(RS_store_address), .bbus_out(RS_store_data),
+    .d_select_out_shift(rs_ex_st_d_select_shift), .address_out(RS_store_address), .bbus_out(RS_store_data),
     .op_code_out(rs_ex_st_op_code), .memory_offset_out(RS_store_mem_ofset), .valid_data(RS_store_valid_data)
   );
   
@@ -273,10 +275,10 @@ module final_project(clk,cache_request,cache_data,cache_busy);
     .clk(clk), .fake_clock(fake_rs_clock), .fake_mux_clock(fake_mux_snoop_clock), .station_selected(load_selected_flag),
     .opbus_op(opbus_opcode), .opbus_dest(opbus_dest), .opbus_src_a(opbus_src_a), .opbus_src_b(opbus_src_b), .abus_in(abus_wire_ld_st),
     .bbus_in(bbus_wire_ld_st), .busy_bus(busy_bus), .execution_unit_busy(rs_ex_ld_st_is_busy), .cdbus_dest(cdbus_dest),
-    .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data),
+    .cdbus_dest_shift(cdbus_dest_shift), .cdbus_dest_data(cdbus_data), .cdbus_valid(cdbus_valid_data), .address_in(cache_address),
     //outs
     .a_select_out(a_select_wire_ld_st), .b_select_out(b_select_wire_ld_st), .station_full(load_full_flag), .d_select_out(RS_load_dest),
-    .d_select_out_shift(RS_load_dest_shift), .abus_out(RS_load_address), .bbus_out(rs_ex_ld_bbus_data),
+    .d_select_out_shift(RS_load_dest_shift), .address_out(RS_load_address), .bbus_out(rs_ex_ld_bbus_data),
     .op_code_out(rs_ex_ld_op_code), .trigger_exes(fake_meme_RS_mux_clock), .memory_offset_out(RS_load_mem_ofset),
     .valid_data(RS_load_valid_data)
   );
@@ -286,8 +288,8 @@ module final_project(clk,cache_request,cache_data,cache_busy);
 (
   //in
   .fake_clock(fake_meme_RS_mux_clock), .load_d_select(RS_load_dest), .load_d_select_shift(RS_load_dest_shift),
-  .load_address(RS_load_address), .load_offset(RS_load_mem_ofset), .store_dbus_data(RS_store_data), .store_address(RS_store_address),
-  .store_offset(RS_store_mem_ofset), .valid_load_data(RS_load_valid_data), .valid_store_data(RS_store_valid_data),
+  .load_address(RS_load_address), /*.load_offset(RS_load_mem_ofset),*/ .store_dbus_data(RS_store_data), .store_address(RS_store_address),
+  /*.store_offset(RS_store_mem_ofset),*/ .valid_load_data(RS_load_valid_data), .valid_store_data(RS_store_valid_data),
   .load_op_code(rs_ex_ld_op_code), .store_op_code(rs_ex_st_op_code), .execution_unit_stall(rs_ex_ld_st_is_busy), .stall_by_mux(mem_mux_stall),
   //out
   .store_stall(RS_store_mux_stall), .exec_d_select(mem_ex_d_select), .exec_d_select_shift(mem_ex_d_select_shift),
@@ -300,11 +302,11 @@ module final_project(clk,cache_request,cache_data,cache_busy);
   (
     //ins
     .clk(clk), .op_code_in(mem_ex_op_code), .d_select_in(mem_ex_d_select), .d_select_shift_in(mem_ex_d_select_shift), .cache_in(cache_data),
-    .abus_data_in(mem_ex_abus_address), .stall_by_mux(mem_mux_stall), .memory_in(cache_data), .store_dbus_data_in(mem_ex_dbus_data),
-    .cache_busy(cache_busy), .address_in(),
+    /*.abus_data_in(mem_ex_abus_address),*/ .stall_by_mux(mem_mux_stall), .store_dbus_data_in(mem_ex_dbus_data),
+    .cache_busy(cache_busy), .address_in(mem_ex_abus_address),
     //outs
     .is_busy(rs_ex_ld_st_is_busy), .valid_data(mem_mux_valid_data), .dbus_data_out(mem_mux_data),
-    .d_select_out(mem_mux_d_select), .d_select_shift_out(mem_mux_d_select_shift), .cache_request(cache_request),
+    .d_select_out(mem_mux_d_select), .d_select_shift_out(mem_mux_d_select_shift), .cache_request(cache_request)
   );
   
   //execution unit instance for adding
@@ -359,17 +361,21 @@ module final_project(clk,cache_request,cache_data,cache_busy);
     fake_rs_clock = 0;
     busy_select_shift = 8'b0;
     //set the current instructin to nothing
-    current_instruction = 12'b0;
+    current_instruction = 18'b0;
     /*
     Current specs:
     3 opcode bits (8 instructions total)
-    3 register bits (8 registers total) [register 0 is the nothing register]
-    8 bit register/bus width
-    format:   000__000 __000    __000
-    add/mult: op __dest__src1   __src2
-    load:     op __dest__address__offset
-    store:    op __src __address__offset
-              (12 bit width)
+    3 register select bits for destination (source if store) (8 registers total) [register 0 is the nothing register]
+    (if not load/store) 3 register select bits for source 1 (ra)
+    (if not load/store) 3 register select bits for sourece 2 (rb)
+    (if load/store) 12 address bits
+    format (not load/store): 000__000 __000 __000 __000000
+                             op __dest__src1__src2__not used
+                             (12 bit width)
+    format (load/store):     000__000 __000000000000
+                   load:     op __dest__address
+                  store:     op __src __address
+                             (18 bit width)
     */
     /*
     Current Instruction List:
@@ -380,13 +386,7 @@ module final_project(clk,cache_request,cache_data,cache_busy);
     MULTF 100
     */
     //fill the instruction queue
-    instruction_queue[0] [11:0] = 12'b001_010_000_000;//ld, r2, 0, 0
-    instruction_queue[1] [11:0] = 12'b001_011_000_001;//ld, r3, 0, 1
-    instruction_queue[2] [11:0] = 12'b011_100_010_011;//add,r4,r2,r3
-    instruction_queue[3] [11:0] = 12'b010_100_000_001;//st, r4, 0, 1
-    instruction_queue[4] [11:0] = 12'b000_000_000_000;//
-    instruction_queue[5] [11:0] = 12'b000_000_000_000;//
-
+    instruction_queue[0] [17:0] = 18'b001_001_010100000000;//ld,r1,0x500
   end
   
   always @(posedge clk) begin
@@ -400,8 +400,8 @@ module final_project(clk,cache_request,cache_data,cache_busy);
     //set the busy_select to 0. it only triggers on the posedge so it won't be an issue
     busy_select_shift = 8'b0;
     //copy the instruction to the current instruction reg
-    current_instruction[11:0] = instruction_queue[0];
-    case (current_instruction[11:9])
+    current_instruction[17:0] = instruction_queue[0];
+    case (current_instruction[17:15])
       3'b000: begin
         //nop
         //don't select any execution units...
@@ -429,14 +429,14 @@ module final_project(clk,cache_request,cache_data,cache_busy);
       //if the destination is r0, don't bother cause it's the 0 register
       //also don't set it for stores
       if(!store_selected_flag) begin
-        busy_select_shift = (current_instruction[8:6] == 3'b0)? 8'b0 : 8'b00000001 << current_instruction[8:6];
+        busy_select_shift = (current_instruction[14:12] == 3'b0)? 8'b0 : 8'b00000001 << current_instruction[14:12];
       end
-      //busy_select_shift = 8'b00000001 << current_instruction[8:6];
       //shift the entries down from the queue
       //act as the dequeue
-      for(i = 0; i < 5; i=i+1) begin
+      for(i = 0; i < 15; i=i+1) begin
         instruction_queue[i] = instruction_queue[i+1];
       end
+      //fill the last one with zeros?
     end
     //invert the clock so that it #triggers the reservation station
     //while also giving the assigns enough time to work
@@ -444,10 +444,11 @@ module final_project(clk,cache_request,cache_data,cache_busy);
   end
   
   //generic assign statemetns for the operation bus (opbus)
-  assign opbus_opcode = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[11:9] : 3'bz;
-  assign opbus_dest = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[8:6] : 3'bz;
-  assign opbus_src_a = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[5:3] : 3'bz;
-  assign opbus_src_b = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[2:0] : 3'bz;
+  assign opbus_opcode = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[17:15] : 3'bz;
+  assign opbus_dest = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[14:12] : 3'bz;
+  assign opbus_src_a = (FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[11:9] : 3'bz;
+  assign opbus_src_b = (FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[8:6] : 3'bz;
+  assign cache_address = (store_selected_flag||load_selected_flag)? current_instruction[11:0] : 12'bz;
 endmodule
 
 //the module for creating the reservation stations
@@ -456,10 +457,10 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   (
     //ins
     clk, fake_clock, fake_mux_clock, station_selected, opbus_op, opbus_dest, opbus_src_a, opbus_src_b, abus_in, bbus_in, busy_bus,
-    execution_unit_busy, cdbus_dest, cdbus_dest_shift, cdbus_dest_data, cdbus_valid, store_mux_stall,
+    execution_unit_busy, cdbus_dest, cdbus_dest_shift, cdbus_dest_data, cdbus_valid, store_mux_stall, address_in,
     //outs
     a_select_out, b_select_out, d_select_out, d_select_out_shift, abus_out, bbus_out, op_code_out, station_full, trigger_exes,
-    memory_offset_out, valid_data
+    memory_offset_out, valid_data, address_out
   );
   //the regular good'ol clock
   input clk;
@@ -470,6 +471,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   //delay clock for after the common data bus (cdbus) has put the data on the bus
   input fake_mux_clock;
   //determins if the station is selected to grab the next enqueued element
+  //TODO: modify instructino queue to use this as trigger rather than a fake clock
   input station_selected;
   //link to the op bus components
   input [2:0] opbus_op;
@@ -488,6 +490,8 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   input [7:0] cdbus_dest_data;
   input cdbus_valid;
   input store_mux_stall;
+  //for the load and store RS, the address input from the queue
+  input [11:0] address_in;
   //the selector to the regfile for which register to use in the abus
   output reg [7:0] a_select_out;
   output reg [7:0] b_select_out;
@@ -506,10 +510,14 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   //the offset for load and store (actually b_src)
   output reg [2:0] memory_offset_out;
   output reg valid_data;
+  //for load/store RS, address output
+  output reg [11:0] address_out;
   //INFO: it may be possible to later do this as a module array
   //array of busses acting as the queue
   //first bracket is how wide each register is
   //second bracket is now many in the array
+  //TODO: stop storing the shift of the register selection like a scrub
+  //TODO: make the storage one giant register to make it less code
   reg[2:0] op_code [BUS_LENGTH:0];
   reg[2:0] dest_reg [BUS_LENGTH:0];
   reg[7:0] dest_reg_shift [BUS_LENGTH:0];
@@ -520,6 +528,9 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   //the data from the regfile
   reg[7:0] abus_data[BUS_LENGTH:0];
   reg[7:0] bbus_data[BUS_LENGTH:0];
+  //(if the load or store register) the bits that would be a register address
+  //pre-calculated when stored
+  reg[11:0] cache_address[BUS_LENGTH:0];
   //array of bits if the instruction at the index is ready
   //if a and b have the data yet
   reg[BUS_LENGTH:0] operation_data_a_ready;
@@ -552,6 +563,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
     b_select_out = 8'bz;
     d_select_out = 8'bz;
     d_select_out_shift = 8'bz;
+    address_out = 12'bz;
     abus_out = 8'bz;
     bbus_out = 8'bz;
     op_code_out = 3'bz;
@@ -575,6 +587,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       operation_data_b_ready[counter] = 0;
       station_in_use[counter] = 0;
       a_b_equal[counter] = 0;
+      cache_address[counter] = 0;
       counter = counter+1;
     end
     counter = 0;
@@ -612,6 +625,9 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
             operation_data_a_ready[counter] = 0;
             operation_data_b_ready[counter] = 0;
             station_in_use[counter] = 1;
+            //calculate the address here and store it
+            //TODO: actually make it a calculate the address rather then just take the offset
+            cache_address[counter] = address_in;
             //also check if it's the last reservation station
             if(counter == BUS_LENGTH) begin
               station_full = 1;
@@ -841,7 +857,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       //only touch the output bus if you have to!
       repeat(BUS_LENGTH+1) begin:data_output_continue
         //if(station_in_use[counter])begin
-          //$display("RS ID=%d, station %d is in use, operation_data_a_ready=%d, operation_data_b_ready=%d", ID,counter,operation_data_a_ready[counter],operation_data_b_ready[counter]);
+        //$display("RS ID=%d, station %d is in use, operation_data_a_ready=%d, operation_data_b_ready=%d", ID,counter,operation_data_a_ready[counter],operation_data_b_ready[counter]);
         //end
         if(station_in_use[counter] && operation_data_a_ready[counter] && operation_data_b_ready[counter] && !execution_unit_busy) begin
           if((ID==3'b010) && (store_mux_stall))begin
@@ -859,6 +875,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
           d_select_out_shift = dest_reg_shift[counter];
           op_code_out = op_code[counter];
           memory_offset_out = src_b[counter];
+          address_out = cache_address[counter];
           //then shift all the values down in the queue
           /*
             example: if this is index 1 and it is ready
@@ -911,6 +928,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
         if((ID==3'b011)||(ID==3'b100)) begin
           $display("RS ID=%d, no instructions ready for execution unit, setting valid data to false", ID);
           valid_data =0;
+          address_out = 12'bz;
         end
         else begin
           $display("RS ID=%d, no instructions ready for execution unit, closing outputs", ID);
@@ -919,6 +937,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
           d_select_out = 3'bz;
           d_select_out_shift = 8'bz;
           op_code_out = 3'bz;
+          address_out = 12'bz;
         end
       end
     end
@@ -1002,7 +1021,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
       d_select_shift_out = d_select_shift_in;
       case(ID)
         2'b00: begin//int subtract unit
-          $display("ERROR: this execution unit is not complete yet");
+          $display("ERROR: this execution unit (SUBT) is not complete yet");
           case(op_code_in)
             3'b101: begin
               dbus_data_out = abus_data_in - bbus_data_in;
@@ -1273,11 +1292,11 @@ module partly_smart_mux
   //the values from the reservation stations of load and store
   input [2:0] load_d_select;//d select
   input [7:0] load_d_select_shift;//d select shift
-  input [8:0] load_address;//abus data
+  input [11:0] load_address;//cache address (previously abus data)
   input [2:0] load_offset;//b code
   input [2:0] store_offset;//b code
   input [7:0] store_dbus_data;//dbus data
-  input [7:0] store_address;//abus data
+  input [11:0] store_address;//cache address (previously abus data)
   input valid_load_data;
   input valid_store_data;
   input [2:0] load_op_code;
@@ -1290,7 +1309,7 @@ module partly_smart_mux
   output reg [7:0] exec_d_select_shift;
   output reg [2:0] exec_b_offset;
   output reg [7:0] exec_dbus_data;
-  output reg [7:0] exec_abus_address;
+  output reg [11:0] exec_abus_address;
   output reg [2:0] exec_op_code;
   //counter for how many stations want to go
   reg [7:0] how_many_outputs;
@@ -1301,7 +1320,7 @@ module partly_smart_mux
     exec_d_select_shift = 8'bz;
     exec_b_offset = 3'bz;
     exec_dbus_data = 8'bz;
-    exec_abus_address = 8'bz;
+    exec_abus_address = 12'bz;
     exec_op_code = 3'bz;
   end
   
@@ -1325,7 +1344,7 @@ module partly_smart_mux
         exec_b_offset = 3'bz;
         exec_d_select_shift = 8'bz;
         exec_dbus_data = 8'bz;
-        exec_abus_address = 8'bz;
+        exec_abus_address = 12'bz;
         exec_op_code = 3'bz;
       end
       else if(how_many_outputs == 1)begin
