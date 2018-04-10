@@ -36,28 +36,17 @@ ID is as follows:
 11 = load/store unit
 */
 
-module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
-  //NOT YET USED//////////////////////////////////////////////////
-  //a reset for the CPU. Sets the program counter back to 0
-  //PC = reset? 0: PC+4
-  //not used for now
-  input reset;
-  //the instruction bus. sends instructions into the instruction queue
-  //not used for now
-  //not sure if it will ever be used
-  input [11:0] ibus;
-  //the address output of the program counter
-  //not used for now
-  output [31:0] iaddrbus;
-  //the databus or loading and storing data to cache
-  inout  [31:0] databus;
-  //the output calculated value of the the data address bus
-  output [31:0] daddrbus;
-  ////////////////////////////////////////////////////////////////
-  
+module final_project(clk,cache_request,cache_data,cache_busy);
   //the clock. it's a clock. it does clock things.
   input clk;
-  
+  //CACHE INFO//
+  //the cache request line
+  output [21:0] cache_request;
+  //the data line from the cache
+  input [21:0] cache_data;
+  //the signal if the cache has two requests at the same time and is busy
+  input cache_busy;
+  //////////////
   //the wires used for the operation bus
   //connects the instructon queue (top module for now)
   //to the reservation stations
@@ -70,19 +59,19 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //connects the mux to the regfile and reservation statrions
   wire [2:0] cdbus_dest;
   wire [7:0] cdbus_dest_shift;
-  wire [31:0] cdbus_data;
+  wire [7:0] cdbus_data;
   wire cdbus_valid_data;
   
   //wires connecting the regfile to the reservation stations
   //one for each one (except load/store)
-  wire [31:0] abus_wire_ld_st;
-  wire [31:0] abus_wire_add;
-  wire [31:0] abus_wire_mult;
-  wire [31:0] abus_wire_int;
-  wire [31:0] bbus_wire_ld_st;
-  wire [31:0] bbus_wire_add;
-  wire [31:0] bbus_wire_mult;
-  wire [31:0] bbus_wire_int;
+  wire [7:0] abus_wire_ld_st;
+  wire [7:0] abus_wire_add;
+  wire [7:0] abus_wire_mult;
+  wire [7:0] abus_wire_int;
+  wire [7:0] bbus_wire_ld_st;
+  wire [7:0] bbus_wire_add;
+  wire [7:0] bbus_wire_mult;
+  wire [7:0] bbus_wire_int;
   wire [7:0] a_select_wire_ld_st;
   wire [7:0] a_select_wire_add;
   wire [7:0] a_select_wire_mult;
@@ -98,35 +87,35 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire [2:0] rs_ex_fp_op_code;
   wire [2:0] rs_ex_fp_d_select;
   wire [7:0] rs_ex_fp_d_select_shift;
-  wire [31:0] rs_ex_fp_abus_data;
-  wire [31:0] rs_ex_fp_bbus_data;
+  wire [7:0] rs_ex_fp_abus_data;
+  wire [7:0] rs_ex_fp_bbus_data;
   wire rs_ex_fp_add_is_busy;
   //FP_MULT
   wire [2:0] rs_ex_fp_mult_op_code;
   wire [2:0] rs_ex_fp_mult_d_select;
   wire [7:0] rs_ex_fp_mult_d_select_shift;
-  wire [31:0] rs_ex_fp_mult_abus_data;
-  wire [31:0] rs_ex_fp_mult_bbus_data;
+  wire [7:0] rs_ex_fp_mult_abus_data;
+  wire [7:0] rs_ex_fp_mult_bbus_data;
   wire rs_ex_fp_mult_is_busy;
   //INT
   wire [2:0] rs_ex_int_op_code;
   wire [2:0] rs_ex_int_d_select;
   wire [7:0] rs_ex_int_d_select_shift;
-  wire [31:0] rs_ex_int_abus_data;
-  wire [31:0] rs_ex_int_bbus_data;
+  wire [7:0] rs_ex_int_abus_data;
+  wire [7:0] rs_ex_int_bbus_data;
   wire rs_ex_int_is_busy;
   //LOAD
   wire [2:0] rs_ex_ld_op_code;
   wire [2:0] rs_ex_ld_d_select;
   wire [7:0] rs_ex_ld_d_select_shift;
-  wire [31:0] rs_ex_ld_abus_data;
-  wire [31:0] rs_ex_ld_bbus_data;
+  wire [7:0] rs_ex_ld_abus_data;
+  wire [7:0] rs_ex_ld_bbus_data;
   //STORE
   wire [2:0] rs_ex_st_op_code;
   wire [2:0] rs_ex_st_d_select;
   wire [7:0] rs_ex_st_d_select_shift;
-  wire [31:0] rs_ex_st_abus_data;
-  wire [31:0] rs_ex_st_bbus_data;
+  wire [7:0] rs_ex_st_abus_data;
+  wire [7:0] rs_ex_st_bbus_data;
   wire rs_ex_ld_st_is_busy;
   
   //wires connecting the execution units to the mux
@@ -134,25 +123,25 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire FP_add_mux_valid_data;
   wire [2:0] FP_add_mux_d_select;
   wire [7:0] FP_add_mux_d_select_shift;
-  wire [31:0] FP_add_mux_data;
+  wire [7:0] FP_add_mux_data;
   wire FP_add_mux_stall;
   //FP_MULT
   wire FP_mult_mux_valid_data;
   wire [2:0] FP_mult_mux_d_select;
   wire [7:0] FP_mult_mux_d_select_shift;
-  wire [31:0] FP_mult_mux_data;
+  wire [7:0] FP_mult_mux_data;
   wire FP_mult_mux_stall;
   //INT
   wire int_mux_valid_data;
   wire [2:0] int_mux_d_select;
   wire [7:0] int_mux_d_select_shift;
-  wire [31:0] int_mux_data;
+  wire [7:0] int_mux_data;
   wire int_mux_stall;
   //LOAD/STORE
   wire mem_mux_valid_data;
   wire [2:0] mem_mux_d_select;
   wire [7:0] mem_mux_d_select_shift;
-  wire [31:0] mem_mux_data;
+  wire [7:0] mem_mux_data;
   wire mem_mux_stall;
   
   //the reg flags for the execution units, if selected for the incoming deququed instruction
@@ -177,11 +166,11 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //both
   wire [2:0] RS_load_mem_ofset;//b select
   wire [2:0] RS_store_mem_ofset;//b select
-  wire [31:0] RS_load_address;//a data
-  wire [31:0] RS_store_address;//a data
+  wire [7:0] RS_load_address;//a data
+  wire [7:0] RS_store_address;//a data
   //store
   wire RS_store_mux_stall;
-  wire [31:0] RS_store_data;//dbus data
+  wire [7:0] RS_store_data;//dbus data
   //load
   wire [2:0] RS_load_dest;//d select
   wire [7:0] RS_load_dest_shift;//d select
@@ -190,8 +179,8 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   wire [2:0] mem_ex_d_select;
   wire [7:0] mem_ex_d_select_shift;
   wire [2:0] mem_ex_b_offset;
-  wire [31:0] mem_ex_dbus_data;
-  wire [31:0] mem_ex_abus_address;
+  wire [7:0] mem_ex_dbus_data;
+  wire [7:0] mem_ex_abus_address;
   wire [2:0] mem_ex_op_code;
   
   //the reg as the instruction queue
@@ -200,14 +189,6 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   //we want 32 instruction queues of 12 bits wide
   reg [11:0] instruction_queue [5:0];
   reg [11:0] current_instruction;
-  
-  //the memory interfacing
-  wire [31:0] memory_address;
-  //we need 32 memorys of 8 bits wide
-  reg [7:0] memory [31:0];
-  wire [2:0] load_store;
-  wire [31:0] store_data;
-  reg [31:0] load_data;
   
   //counter for the dequeue for loop
   integer i;
@@ -315,16 +296,15 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
   
   //execution unit instance for loading/storing
   //ID=11=LD/ST
-  execution_unit #(.CYCLE_TIME(1),.ID(2'b11)) load_store_unit
+  execution_unit #(.CYCLE_TIME(1),.ID(2'b11),.CPU_ID(1'b0)) load_store_unit
   (
     //ins
-    .clk(clk), .op_code_in(mem_ex_op_code), .d_select_in(mem_ex_d_select), .d_select_shift_in(mem_ex_d_select_shift),
-    .abus_data_in(mem_ex_abus_address), .stall_by_mux(mem_mux_stall), .offset_in(mem_ex_b_offset), .memory_in(load_data),
-    .store_dbus_data_in(mem_ex_dbus_data),
+    .clk(clk), .op_code_in(mem_ex_op_code), .d_select_in(mem_ex_d_select), .d_select_shift_in(mem_ex_d_select_shift), .cache_in(cache_data),
+    .abus_data_in(mem_ex_abus_address), .stall_by_mux(mem_mux_stall), .memory_in(cache_data), .store_dbus_data_in(mem_ex_dbus_data),
+    .cache_busy(cache_busy), .address_in(),
     //outs
     .is_busy(rs_ex_ld_st_is_busy), .valid_data(mem_mux_valid_data), .dbus_data_out(mem_mux_data),
-    .d_select_out(mem_mux_d_select), .d_select_shift_out(mem_mux_d_select_shift), .memory_address(memory_address), .memory_out(store_data),
-    .op_code_out(load_store)
+    .d_select_out(mem_mux_d_select), .d_select_shift_out(mem_mux_d_select_shift), .cache_request(cache_request),
   );
   
   //execution unit instance for adding
@@ -380,12 +360,11 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
     busy_select_shift = 8'b0;
     //set the current instructin to nothing
     current_instruction = 12'b0;
-    load_data = 32'bz;
     /*
     Current specs:
     3 opcode bits (8 instructions total)
     3 register bits (8 registers total) [register 0 is the nothing register]
-    32 bit register/bus width
+    8 bit register/bus width
     format:   000__000 __000    __000
     add/mult: op __dest__src1   __src2
     load:     op __dest__address__offset
@@ -407,12 +386,7 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
     instruction_queue[3] [11:0] = 12'b010_100_000_001;//st, r4, 0, 1
     instruction_queue[4] [11:0] = 12'b000_000_000_000;//
     instruction_queue[5] [11:0] = 12'b000_000_000_000;//
-    
-    //memory pre-load
-    memory[0] [7:0] = 8'd100;
-    memory[1] [7:0] = 8'd0;
-    memory[2] [7:0] = 8'd101;
-    memory[3] [7:0] = 8'd255;
+
   end
   
   always @(posedge clk) begin
@@ -469,24 +443,6 @@ module final_project(reset,clk,ibus,iaddrbus,databus,daddrbus);
     fake_rs_clock = ~fake_rs_clock;
   end
   
-  //memory address updating block
-  always @(memory_address) begin
-    //filter out all the z and x
-    if((memory_address >= 0) && (load_store > 3'b000)) begin
-      $display("request for memory started, memory_address=%d, load_store=%d", memory_address, load_store);
-      load_data = 32'bz;
-      case(load_store)
-        3'b001: begin
-          //load from memory
-          load_data = memory[memory_address];
-        end
-        3'b010: begin
-          //store to memory
-          memory[memory_address] = store_data;
-        end
-      endcase
-    end
-  end
   //generic assign statemetns for the operation bus (opbus)
   assign opbus_opcode = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[11:9] : 3'bz;
   assign opbus_dest = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[8:6] : 3'bz;
@@ -521,7 +477,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   input [2:0] opbus_src_a;
   input [2:0] opbus_src_b;
   //the inputs from the regfile
-  input [31:0] abus_in,bbus_in;
+  input [7:0] abus_in,bbus_in;
   //the array of busy buses from the regfile. it's a wire here so always updated
   input [7:0] busy_bus;
   //flag for if the execution unit is busy
@@ -529,7 +485,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   //the common data bus for snooping
   input [2:0] cdbus_dest;
   input [7:0] cdbus_dest_shift;
-  input [31:0] cdbus_dest_data;
+  input [7:0] cdbus_dest_data;
   input cdbus_valid;
   input store_mux_stall;
   //the selector to the regfile for which register to use in the abus
@@ -539,7 +495,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   output reg [7:0] d_select_out_shift;
   output reg [2:0] d_select_out;
   //the output for the data from the abus and bbus data arrays
-  output reg [31:0] abus_out, bbus_out;
+  output reg [7:0] abus_out, bbus_out;
   //the opcode for the execution
   output reg [2:0] op_code_out;
   //flag to tell wether the station is full
@@ -562,8 +518,8 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   reg[2:0] src_b [BUS_LENGTH:0];
   reg[7:0] src_b_shift [BUS_LENGTH:0];
   //the data from the regfile
-  reg[31:0] abus_data[BUS_LENGTH:0];
-  reg[31:0] bbus_data[BUS_LENGTH:0];
+  reg[7:0] abus_data[BUS_LENGTH:0];
+  reg[7:0] bbus_data[BUS_LENGTH:0];
   //array of bits if the instruction at the index is ready
   //if a and b have the data yet
   reg[BUS_LENGTH:0] operation_data_a_ready;
@@ -596,8 +552,8 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
     b_select_out = 8'bz;
     d_select_out = 8'bz;
     d_select_out_shift = 8'bz;
-    abus_out = 32'bz;
-    bbus_out = 32'bz;
+    abus_out = 8'bz;
+    bbus_out = 8'bz;
     op_code_out = 3'bz;
     station_full = 0;
     counter = 0;
@@ -613,8 +569,8 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
       src_a_shift[counter] = 8'b0;
       src_b[counter] = 3'b0;
       src_b_shift[counter] = 8'b0;
-      abus_data[counter] = 32'b0;
-      bbus_data[counter] = 32'b0;
+      abus_data[counter] = 8'b0;
+      bbus_data[counter] = 8'b0;
       operation_data_a_ready[counter] = 0;
       operation_data_b_ready[counter] = 0;
       station_in_use[counter] = 0;
@@ -958,8 +914,8 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
         end
         else begin
           $display("RS ID=%d, no instructions ready for execution unit, closing outputs", ID);
-          abus_out = 32'bz;
-          bbus_out = 32'bz;
+          abus_out = 8'bz;
+          bbus_out = 8'bz;
           d_select_out = 3'bz;
           d_select_out_shift = 8'bz;
           op_code_out = 3'bz;
@@ -972,47 +928,44 @@ endmodule
 
 //the module for creating the execution units
 //execution unit IDs: 001=MULT, 010=ADD, 011=LD/ST
-module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
+module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
   (
     //in
-    clk, op_code_in, d_select_in, d_select_shift_in, abus_data_in, bbus_data_in, stall_by_mux, offset_in, memory_in, store_dbus_data_in,
+    clk, op_code_in, d_select_in, d_select_shift_in, abus_data_in, bbus_data_in, stall_by_mux, cache_in, store_dbus_data_in, cache_busy, address_in,
     //out
-    is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out, fake_clock, memory_address, memory_out, op_code_out
+    is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out, fake_clock, cache_request
   );
   input clk;
   //the inputs from the reservation station
   input [2:0] op_code_in;
   input [2:0] d_select_in;
   input [7:0] d_select_shift_in;
-  input [31:0] abus_data_in;
-  input [31:0] bbus_data_in;
+  input [7:0] abus_data_in;
+  input [7:0] bbus_data_in;
   //the input from the mux if there's two or more requests for the cdb and one execution needs to stall
   input stall_by_mux;
-  //the offset for load and store (actually the b instruction)
-  input [2:0] offset_in;
-  //the memory input wire
-  input [31:0] memory_in;
+  //the cache input wire
+  input [21:0] cache_in;
   //the data from the regfile to store, from the dbus
-  input [31:0] store_dbus_data_in;
+  input [7:0] store_dbus_data_in;
+  //flag for if the cache is busy
+  input cache_busy;
+  //the address that needs to be parsed to the cache
+  input [11:0] address_in;
   //flag to determine if the execution unit is busy
   output reg is_busy;
   //flag for the regfile to verify it only accepts the final value at the correct time
   output reg valid_data;
   //the actual outputs for above, but in output form
-  output reg [31:0] dbus_data_out;
+  output reg [7:0] dbus_data_out;
   output reg [2:0] d_select_out;
   output reg [7:0] d_select_shift_out;
   output reg fake_clock;
-  //the memory address for the memory storing or loading
-  //NOTE: it is 32 bit like the rest of data, but only use 0-3 for memory testing
-  output reg [31:0] memory_address;
-  //the actual value to store to the memory
-  output reg [31:0] memory_out;
-  output reg [2:0] op_code_out;
+  //the cache request for the memory storing or loading
+  output reg [21:0] cache_request;
   //counter to use for determining the "cycle" of execution
   reg [31:0] counter;
   reg [31:0] counter_backup;
-  reg [2:0] saved_op_code;
   
   initial begin
     //set all the stuffs to 0
@@ -1021,24 +974,24 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     dbus_data_out = 0;
     d_select_out = 0;
     d_select_shift_out = 0;
-    memory_address = 32'bz;
-    memory_out = 32'bz;
+    cache_request = 22'bz;
     fake_clock = 0;
     counter = 0;
     counter_backup = 0;
-    op_code_out = 3'bz;
-    saved_op_code = 3'bz;
   end
   
   //runs the simulated execution as soon as possible (at the main clock)
   always @(posedge clk) begin
     valid_data = 0;
-    memory_address = 31'bz;
-    memory_out = 32'bz;
-    op_code_out = 3'bz;
     if(is_busy) begin
       counter = counter + 1;
       $display("execution unit %d is busy, counter=%d",ID, counter);
+    end
+    else if(cache_busy)begin
+      $display("cache reports busy, setting load/sotre ex unit to busy");
+      is_busy = 1;
+      counter = counter+1;
+      cache_request = 22'bz;
     end
     if((!is_busy) && (op_code_in > 0)) begin
       $display("execution unit %d is not busy, accepts new instruction.",ID);
@@ -1048,45 +1001,47 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
       d_select_out = d_select_in;
       d_select_shift_out = d_select_shift_in;
       case(ID)
-        2'b00: begin
-          //integer execution unit
-          //nothing yet...
-          $display("ERROR: 
+        2'b00: begin//int subtract unit
+          $display("ERROR: this execution unit is not complete yet");
+          case(op_code_in)
+            3'b101: begin
+              dbus_data_out = abus_data_in - bbus_data_in;
+            end
+          endcase
         end
-        2'b01: begin
-          //FP multiplier unit
+        2'b01: begin//int multiply unit
           case(op_code_in)
             3'b100: begin
-              //multing floating point
               dbus_data_out = abus_data_in * bbus_data_in;
             end
           endcase
         end
-        2'b10: begin
-          //FP adder unit
+        2'b10: begin//int add unit
           case(op_code_in)
             3'b011: begin
-              //add floating point
+              //add
               dbus_data_out = abus_data_in + bbus_data_in;
             end
           endcase
         end
         2'b11: begin
           //load/store unit
+          //the request line:
+          //processor id (1 bit)
+          //load-store flag (1 bit) (0=load, 1=store)
+          //the tag (11 bits)
+          //the block offset (1 bits)
+          //the data (if a store from processor to memory) (8 bits)
           case(op_code_in)
             3'b001: begin
               //load (from "memory", to regfile)
-              //will trigger memory address to return the value
-              op_code_out = op_code_in;
-              saved_op_code = op_code_in;
-              memory_address = abus_data_in + offset_in;
+              //send request, wait for return
+              cache_request = {CPU_ID,1'b0,address_in[11:4],address_in[2:0],address_in[3],8'b0};
             end
             3'b010: begin
               //store (to "memory", from regfile)
-              op_code_out = op_code_in;
-              saved_op_code = op_code_in;
-              memory_out = store_dbus_data_in;
-              memory_address = abus_data_in + offset_in;
+              //send request to store with data
+              cache_request = {CPU_ID,1'b1,address_in[11:4],address_in[2:0],address_in[3],bbus_data_in};
             end
           endcase
         end
@@ -1095,18 +1050,29 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
     //if it equals, the exeuction unit is done
     //however, the mux may just have gotten two inputs
     if(counter == CYCLE_TIME) begin
-      $display("execution complete for execution unit %d, valid data is high",ID);
-      if(saved_op_code == 3'b001) begin
-        //actually load the data
-        dbus_data_out = memory_in;
-        saved_op_code = 3'bz;
-      end
-      else if(saved_op_code == 3'b010) begin
-        //store should have no regfile writeback, write to nothing register
-        dbus_data_out = 32'b0;
-        d_select_out = 3'b0;
-        d_select_shift_out = 8'b00000001;
-        saved_op_code = 3'bz;
+      $display("execution complete for execution unit %d",ID);
+      //if load/store execution unit, check if the data sent from the cache is valid, and for this CPU
+      if(ID==2'b11)begin
+        if(cache_in >=0)begin
+          $display("cache_in is a valid value, (%b)",cache_in);
+          if(cache_in[21]==CPU_ID)begin
+            $display("cache_in data is for this processor, ID=%d",CPU_ID);
+            if(cache_in[20])begin//store to cache, no writeback
+              dbus_data_out = 8'b0;
+              d_select_out = 3'b0;
+              d_select_shift_out = 8'b00000001;
+            end
+            else begin//load from cache, writeback data
+              dbus_data_out = cache_in[7:0];
+            end
+          end
+          else begin
+            $display("cache_in data is not for this processor, ID=%d",CPU_ID);
+          end
+        end
+        else begin
+          $display("cache_in is z");
+        end
       end
       //reset the counter and the busy flag
       is_busy = 0;
@@ -1174,10 +1140,10 @@ module smart_mux
   input [7:0] FP_add_d_select_shift;
   input [7:0] int_d_select_shift;
   //the 4 data values
-  input [31:0] mem_data;
-  input [31:0] FP_mult_data;
-  input [31:0] FP_add_data;
-  input [31:0] int_data;
+  input [7:0] mem_data;
+  input [7:0] FP_mult_data;
+  input [7:0] FP_add_data;
+  input [7:0] int_data;
   //output flags for the execution units if their data was accepted
   output reg mem_stall;
   output reg FP_mult_stall;
@@ -1186,12 +1152,12 @@ module smart_mux
   //the output for the common data bus
   output reg [2:0] cdbus_d_select;
   output reg [7:0] cdbus_d_select_shift;
-  output reg [31:0] cdbus_data;
+  output reg [7:0] cdbus_data;
   output reg cdbus_valid_data;
   output reg fake_mux_output_clock;
   
   //reg to count how many inputs we just got
-  reg [31:0] how_many_inputs;
+  reg [7:0] how_many_inputs;
   
   initial begin
     how_many_inputs = 0;
@@ -1220,7 +1186,7 @@ module smart_mux
       cdbus_valid_data = 0;
       cdbus_d_select = 3'bz;
       cdbus_d_select_shift = 8'bz;
-      cdbus_data = 32'bz;
+      cdbus_data = 8'bz;
       mem_stall = 0;
       FP_mult_stall = 0;
       FP_add_stall = 0;
@@ -1307,11 +1273,11 @@ module partly_smart_mux
   //the values from the reservation stations of load and store
   input [2:0] load_d_select;//d select
   input [7:0] load_d_select_shift;//d select shift
-  input [31:0] load_address;//abus data
+  input [8:0] load_address;//abus data
   input [2:0] load_offset;//b code
   input [2:0] store_offset;//b code
-  input [31:0] store_dbus_data;//dbus data
-  input [31:0] store_address;//abus data
+  input [7:0] store_dbus_data;//dbus data
+  input [7:0] store_address;//abus data
   input valid_load_data;
   input valid_store_data;
   input [2:0] load_op_code;
@@ -1323,19 +1289,19 @@ module partly_smart_mux
   output reg [2:0] exec_d_select;
   output reg [7:0] exec_d_select_shift;
   output reg [2:0] exec_b_offset;
-  output reg [31:0] exec_dbus_data;
-  output reg [31:0] exec_abus_address;
+  output reg [7:0] exec_dbus_data;
+  output reg [7:0] exec_abus_address;
   output reg [2:0] exec_op_code;
   //counter for how many stations want to go
-  reg [31:0] how_many_outputs;
+  reg [7:0] how_many_outputs;
   
   initial begin
     store_stall = 0;
     exec_d_select = 3'bz;
     exec_d_select_shift = 8'bz;
     exec_b_offset = 3'bz;
-    exec_dbus_data = 32'bz;
-    exec_abus_address = 32'bz;
+    exec_dbus_data = 8'bz;
+    exec_abus_address = 8'bz;
     exec_op_code = 3'bz;
   end
   
@@ -1358,8 +1324,8 @@ module partly_smart_mux
         exec_d_select = 3'bz;
         exec_b_offset = 3'bz;
         exec_d_select_shift = 8'bz;
-        exec_dbus_data = 32'bz;
-        exec_abus_address = 32'bz;
+        exec_dbus_data = 8'bz;
+        exec_abus_address = 8'bz;
         exec_op_code = 3'bz;
       end
       else if(how_many_outputs == 1)begin
@@ -1367,7 +1333,7 @@ module partly_smart_mux
         store_stall = 0;
         if(valid_load_data > 0) begin
           //not matter
-          exec_dbus_data = 32'b0;
+          exec_dbus_data = 8'b0;
           //matter
           exec_b_offset = load_offset;
           exec_d_select = load_d_select;
@@ -1390,7 +1356,7 @@ module partly_smart_mux
         $display("memory mux, two load/store reservation stations to output, stall stores");
         store_stall = 1;
         //not matter
-        exec_dbus_data = 32'b0;
+        exec_dbus_data = 8'b0;
         //matter
         exec_b_offset = load_offset;
         exec_d_select = load_d_select;
@@ -1418,28 +1384,28 @@ module regfile(
   input [7:0] BselectLdSt,//select the register index to read from to store into bbus
   input [7:0] Dselect,//select the register to write to from dbus
   input [7:0] busySelect,//flag for each flipflop to say if it is open
-  input [31:0] dbus,//data in
-  output [31:0] abusAdd,//data out
-  output [31:0] abusInt,//data out
-  output [31:0] abusMult,//data out
-  output [31:0] abusLdSt,//data out
-  output [31:0] bbusAdd,//data out
-  output [31:0] bbusInt,//data out
-  output [31:0] bbusMult,//data out
-  output [31:0] bbusLdSt,//data out
+  input [7:0] dbus,//data in
+  output [7:0] abusAdd,//data out
+  output [7:0] abusInt,//data out
+  output [7:0] abusMult,//data out
+  output [7:0] abusLdSt,//data out
+  output [7:0] bbusAdd,//data out
+  output [7:0] bbusInt,//data out
+  output [7:0] bbusMult,//data out
+  output [7:0] bbusLdSt,//data out
   output [7:0] busyBus,//bus for each of the reg entries if it's busy or not
   input clk,
   input validData
   );
   //if it's requesting register 0 just output a 0
-  assign abusAdd = AselectAdd[0] ? 32'b0 : 32'bz;
-  assign bbusLdSt = BselectLdSt[0] ? 32'b0 : 32'bz;
-  assign abusInt = AselectInt[0] ? 32'b0 : 32'bz;
-  assign bbusAdd = BselectAdd[0] ? 32'b0 : 32'bz;
-  assign abusLdSt = AselectLdSt[0] ? 32'b0 : 32'bz;
-  assign bbusInt = BselectInt[0] ? 32'b0 : 32'bz;
-  assign abusMult = AselectMult[0] ? 32'b0 : 32'bz;
-  assign bbusMult = BselectMult[0] ? 32'b0 : 32'bz;
+  assign abusAdd = AselectAdd[0] ? 8'b0 : 8'bz;
+  assign bbusLdSt = BselectLdSt[0] ? 8'b0 : 8'bz;
+  assign abusInt = AselectInt[0] ? 8'b0 : 8'bz;
+  assign bbusAdd = BselectAdd[0] ? 8'b0 : 8'bz;
+  assign abusLdSt = AselectLdSt[0] ? 8'b0 : 8'bz;
+  assign bbusInt = BselectInt[0] ? 8'b0 : 8'bz;
+  assign abusMult = AselectMult[0] ? 8'b0 : 8'bz;
+  assign bbusMult = BselectMult[0] ? 8'b0 : 8'bz;
   assign busyBus[0] = 0;
   //only 8 of these for now
   DNegflipFlop myFlips[6:0](
@@ -1473,7 +1439,7 @@ module DNegflipFlop
   dbus, abusAdd, abusInt, abusMult, abusLdSt, Dselect, BselectLdSt, BselectAdd, BselectInt, BselectMult, AselectAdd,
   AselectInt, AselectLdSt, AselectMult, bbusAdd, bbusInt, bbusMult, bbusLdSt, clk, busySelect, isBusy, validData
 );
-  input [31:0] dbus;
+  input [7:0] dbus;
   input Dselect;//the select write bit for this register
   input BselectLdSt;//the select read bit for this register
   input BselectAdd;//the select read bit for this register
@@ -1485,21 +1451,21 @@ module DNegflipFlop
   input AselectMult;//the other select read bit for this register
   input busySelect;
   input clk;
-  output  [31:0] abusAdd;
-  output  [31:0] abusInt;
-  output  [31:0] abusMult;
-  output  [31:0] abusLdSt;
-  output  [31:0] bbusAdd;
-  output  [31:0] bbusInt;
-  output  [31:0] bbusMult;
-  output  [31:0] bbusLdSt;
-  reg [31:0] data;//the actual data for the register
-  output reg isBusy;
+  output  [7:0] abusAdd;
+  output  [7:0] abusInt;
+  output  [7:0] abusMult;
+  output  [7:0] abusLdSt;
+  output  [7:0] bbusAdd;
+  output  [7:0] bbusInt;
+  output  [7:0] bbusMult;
+  output  [7:0] bbusLdSt;
+  reg [7:0] data;//the actual data for the register
+  output reg isBusy;//TODO: make this a counter such that a load instruction can detect if it just checked out itself
   input validData;
   
   initial begin
   //start the registers empty
-  data = 32'h00000000;
+  data = 8'h00;
   isBusy = 0;
   end
   
@@ -1516,13 +1482,13 @@ module DNegflipFlop
     end
   end
   //if this register has a or b select high, update the a and b bus
-  assign abusAdd = AselectAdd? data : 32'hzzzzzzzz;
-  assign abusInt = AselectInt? data : 32'hzzzzzzzz;
-  assign abusMult = AselectMult? data : 32'hzzzzzzzz;
-  assign abusLdSt = AselectLdSt? data : 32'hzzzzzzzz;
-  assign bbusAdd = BselectAdd? data : 32'hzzzzzzzz;
-  assign bbusInt = BselectInt? data : 32'hzzzzzzzz;
-  assign bbusMult = BselectMult? data : 32'hzzzzzzzz;
-  assign bbusLdSt = BselectLdSt? data : 32'hzzzzzzzz;
+  assign abusAdd = AselectAdd? data : 8'hzz;
+  assign abusInt = AselectInt? data : 8'hzz;
+  assign abusMult = AselectMult? data : 8'hzz;
+  assign abusLdSt = AselectLdSt? data : 8'hzz;
+  assign bbusAdd = BselectAdd? data : 8'hzz;
+  assign bbusInt = BselectInt? data : 8'hzz;
+  assign bbusMult = BselectMult? data : 8'hzz;
+  assign bbusLdSt = BselectLdSt? data : 8'hzz;
 
 endmodule
