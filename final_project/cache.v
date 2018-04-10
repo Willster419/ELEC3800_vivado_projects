@@ -130,7 +130,6 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
     address_line[13] [21:0] = 22'b0101_1101_000__0101_1101_000;
     address_line[14] [21:0] = 22'b0101_1110_000__0101_1110_000;
     address_line[15] [21:0] = 22'b0101_1111_000__0101_1111_000;
-    //TODO: init cache lines and address lines and valid lines
   end
 
   always@(posedge clk)begin
@@ -204,7 +203,6 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
       request_to_process[21],request_to_process[20],request_to_process[19:9],request_to_process[8],request_to_process[7:0]);
       //there are 16 lines, use a ternary with the block offset to specify which line (first half or second half) to search
       //match the tag first to address_line
-      //cache_line -> maybe rename to data_line?
       //reg [15:0] cache_line [15:0]; 16 bits long each data line
       //reg [21:0] address_line [15:0]; 22 bits long each tag/address line
       begin:tag_search_break;
@@ -225,7 +223,7 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
             disable tag_search_break;
           end
           counter = counter+1;
-        end
+        end//TODO: handle case of missing cache info
       end
       //the data_out line has the following:
       //the processor id (1 bit)
@@ -233,10 +231,6 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
       //the tag (11 bits)
       //the block offset (1 bits)
       //the data (if a load) (8 bits)
-      //upper_address_bound = block_offset?15:21;
-      //lower_address_bound = block_offset?0:16;
-      //upper_data_bound = block_offset?7:15;
-      //lower_data_bound = block_offset?0:8;
       case(request_to_process[20])
         1'b1: begin//store
           //write the data
