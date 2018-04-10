@@ -985,6 +985,11 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
   //counter to use for determining the "cycle" of execution
   reg [31:0] counter;
   reg [31:0] counter_backup;
+  //the actual cycle time.
+  //for load/store, there is one execution cycle, and then an additional cycle for cache access
+  //so load and store execution cycles are CYCLE_TIME+1 (cause need to wait a cycle for cache access)
+  //but all other execution units are fine
+  reg [31:0] actual_cycle_time;
   
   initial begin
     //set all the stuffs to 0
@@ -997,6 +1002,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
     fake_clock = 0;
     counter = 0;
     counter_backup = 0;
+    actual_cycle_time = (ID==2'b11)? CYCLE_TIME+1 : CYCLE_TIME;
   end
   
   //runs the simulated execution as soon as possible (at the main clock)
@@ -1068,7 +1074,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
     end
     //if it equals, the exeuction unit is done
     //however, the mux may just have gotten two inputs
-    if(counter == CYCLE_TIME) begin
+    if(counter == actual_cycle_time) begin
       $display("execution complete for execution unit %d",ID);
       //if load/store execution unit, check if the data sent from the cache is valid, and for this CPU
       if(ID==2'b11)begin
@@ -1102,7 +1108,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
       valid_data = 1;
     end
     //hear means that it was stalled by the mux not being ready
-    else if(counter > CYCLE_TIME) begin
+    else if(counter > actual_cycle_time) begin
       //valid data needs to stay true for mux to work...
       $display("(posedge clk) execution unit %d stalled by mux, setting valid back to true", ID);
       valid_data = 1;
@@ -1120,7 +1126,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
   //trigger for the cdbus mux, this unit was selected to go next
   //can therefore execute next instruction
   always @(negedge stall_by_mux) begin
-    if(counter > CYCLE_TIME) begin
+    if(counter > actual_cycle_time) begin
       $display("(negedge stall_by_mux) negedge stall_by_mux detected for execution unit %d with counter > CYCLE_TIME true, self no longer busy",ID);
       //mux just put it's data on the bus, can set busy to false
       is_busy = 0;
@@ -1272,7 +1278,7 @@ module smart_mux
       $display("after arbitration, FP_mult_stall=%b, FP_add_stall=%b, mem_stall=%b, int_stall=%b", FP_mult_stall, FP_add_stall, mem_stall,int_stall);
     end
     if(how_many_inputs > 0) begin
-      $display("writing to common data bus: dest=%d, data=%X", cdbus_d_select, cdbus_data);
+      $display("writing to common data bus: dest=%d, data=%b, valid_data=%b", cdbus_d_select, cdbus_data, cdbus_valid_data);
     end
     fake_mux_output_clock = ~fake_mux_output_clock;
   end
