@@ -522,7 +522,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
       end
       //shift the entries down from the queue
       //act as the dequeue
-      for(i = 0; i < 15; i=i+1) begin
+      for(i = 0; i < 31; i=i+1) begin
         case(CPU_ID)
           1'b0:begin
             instruction_queue[i] = instruction_queue[i+1];
@@ -1559,7 +1559,7 @@ module regfile(
   assign abusMult = AselectMult[0] ? 8'b0 : 8'bz;
   assign bbusMult = BselectMult[0] ? 8'b0 : 8'bz;
   assign busyBus[0] = 0;
-  //only 8 of these for now
+  //only 7 of these
   DNegflipFlop myFlips[6:0](
     .dbus(dbus),
     .abusAdd(abusAdd),
