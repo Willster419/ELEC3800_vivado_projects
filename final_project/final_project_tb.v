@@ -63,7 +63,7 @@ module final_project_tb();
   );
   
   //module final_project(clk,cache_request,cache_data,cache_busy);
-  final_project dut
+  final_project #(.CPU_ID(1'b0)) dut
   (
     .clk(clk),
     .cache_request(p0_request),

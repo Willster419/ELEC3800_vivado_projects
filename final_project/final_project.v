@@ -36,7 +36,7 @@ ID is as follows:
 11 = load/store unit
 */
 
-module final_project(clk,cache_request,cache_data,cache_busy);
+module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,cache_busy);
   //the clock. it's a clock. it does clock things.
   input clk;
   //CACHE INFO//
@@ -203,6 +203,9 @@ module final_project(clk,cache_request,cache_data,cache_busy);
   //the control bit for setting the high bit for the regfile if the dest reg in use
   //width needs to be the number of regs
   reg [7:0] busy_select_shift;
+  
+  //wire for telling the execution unit which CPU_ID it is
+  wire CPU_ID_WIRE;
 
   //register module instance
   regfile best_regfile_name_ever
@@ -298,12 +301,12 @@ module final_project(clk,cache_request,cache_data,cache_busy);
   
   //execution unit instance for loading/storing
   //ID=11=LD/ST
-  execution_unit #(.CYCLE_TIME(1),.ID(2'b11),.CPU_ID(1'b0)) load_store_unit
+  execution_unit #(.CYCLE_TIME(1),.ID(2'b11)) load_store_unit
   (
     //ins
     .clk(clk), .op_code_in(mem_ex_op_code), .d_select_in(mem_ex_d_select), .d_select_shift_in(mem_ex_d_select_shift), .cache_in(cache_data),
     /*.abus_data_in(mem_ex_abus_address),*/ .stall_by_mux(mem_mux_stall), .store_dbus_data_in(mem_ex_dbus_data),
-    .cache_busy(cache_busy), .address_in(mem_ex_abus_address),
+    .cache_busy(cache_busy), .address_in(mem_ex_abus_address), .CPU_ID(CPU_ID_WIRE),
     //outs
     .is_busy(rs_ex_ld_st_is_busy), .valid_data(mem_mux_valid_data), .dbus_data_out(mem_mux_data),
     .d_select_out(mem_mux_d_select), .d_select_shift_out(mem_mux_d_select_shift), .cache_request(cache_request)
@@ -452,6 +455,7 @@ module final_project(clk,cache_request,cache_data,cache_busy);
   assign opbus_src_a = (FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[11:9] : 3'bz;
   assign opbus_src_b = (FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[8:6] : 3'bz;
   assign cache_address = (store_selected_flag||load_selected_flag)? current_instruction[11:0] : 12'bz;
+  assign CPU_ID_WIRE = CPU_ID;
 endmodule
 
 //the module for creating the reservation stations
@@ -950,10 +954,11 @@ endmodule
 
 //the module for creating the execution units
 //execution unit IDs: 001=MULT, 010=ADD, 011=LD/ST
-module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
+module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   (
     //in
-    clk, op_code_in, d_select_in, d_select_shift_in, abus_data_in, bbus_data_in, stall_by_mux, cache_in, store_dbus_data_in, cache_busy, address_in,
+    clk, op_code_in, d_select_in, d_select_shift_in, abus_data_in, bbus_data_in, stall_by_mux, cache_in,
+    store_dbus_data_in, cache_busy, address_in, CPU_ID,
     //out
     is_busy, valid_data, dbus_data_out, d_select_out, d_select_shift_out, fake_clock, cache_request
   );
@@ -974,6 +979,8 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00, CPU_ID = 1'b0)
   input cache_busy;
   //the address that needs to be parsed to the cache
   input [11:0] address_in;
+  //the ID of this CPU
+  input CPU_ID;
   //flag to determine if the execution unit is busy
   output reg is_busy;
   //flag for the regfile to verify it only accepts the final value at the correct time
