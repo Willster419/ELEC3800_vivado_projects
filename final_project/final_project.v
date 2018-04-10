@@ -583,6 +583,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
   reg a_update_index_flag;
   reg b_update_index_flag;
   reg output_bus_touched;
+  reg from_cdb;
   
   initial begin
     trigger_exes = 0;
@@ -603,6 +604,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
     output_bus_touched = 0;
     memory_offset_out = 3'bz;
     valid_data = 0;
+    from_cdb = 0;
     repeat(BUS_LENGTH+1) begin
       op_code[counter] = 3'b0;
       dest_reg[counter] = 3'b0;
@@ -674,66 +676,68 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
     //use a loop to incriment the counter  for checking if data is ready
     begin:data_check_break
       repeat(BUS_LENGTH+1) begin:data_check_continue
+        from_cdb = 0;
         if(station_in_use[counter]) begin
           $display("RS ID=%d, station %d is in use", ID, counter);
-          //check if the value for each src is ready
-          //first check via snooping
-          if(!operation_data_a_ready[counter]) begin
-            $display("RS ID=%d, data for a (regsiter %d) of station %d is not ready", ID, src_a[counter], counter);
-            //if the snopped data is relavent to this reservation station
-            //$display("testing for common data bus: cdbus_dest=%d, src_a[counter]=%d",cdbus_dest,src_a[counter]);
-            if(dest_reg[counter] == src_a[counter])begin
-              $display("RS ID=%d, dest_reg and src_a match (%d) for station %d, ignoring",ID, src_a[counter],counter);
-              operation_data_a_ready[counter]=1;
-            end
-            else if(cdbus_dest == src_a[counter]) begin
-              $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source a at station %d ", ID, cdbus_dest, counter);
-              //update the value with the snopped value and set data ready flag
-              abus_data[counter] = cdbus_dest_data;
-              operation_data_a_ready[counter]=1;
-              //TODO:
-              //but also check down below the queue that any destination registers don't match (WAW)
-              //loop to check down
-              //if dest==src_a
-              //op_data_a_ready = 0;
-              if(counter > 0) begin: WAW_check_break_a
-                counter3 = counter-1;
-                repeat(counter) begin
-                  if(dest_reg[counter3] == src_a[counter])begin
-                    $display("RS ID=%d, setting ready flag for source a of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
-                    operation_data_a_ready[counter]=0;
-                  end
-                  counter3 = counter3-1;
-                end
-              end
-            end
-            else if(!busy_bus[src_a[counter]]) begin
-              $display("RS ID=%d, busybus says register %d for a is up to date for station %d", ID, src_a[counter], counter);
-              //it is ready, set the output address of a
-              //it will trigger the wire to put the value at the reg index onto the abus
-              a_select_out = src_a_shift[counter];
-              a_update_index = counter;
-              //abus_data[counter] = abus_in;//don't do this until the posedge part
-              operation_data_a_ready[counter]=1;
-              a_update_index_flag = 1;
-            end
-          end
-          //loads do not need this, stores need d,
+          //loads and stores only check the destination busyBus
+          //stores check snoop
+          //all others do the regular thing
           case(op_code[counter])
-            3'b001: begin
-              //set operation data of b to be ready. we don't care about it anyways
-              operation_data_b_ready[counter]=1;
-            end
-            3'b010: begin
-              //check it for d
+            3'b010: begin//store cheks snoop (dog) bus
+              //data (to store to mem) saved in bbus
+              //load address from aselect into abus(TODO)
+              //check the cdb
+              //else check the register is checked out
+              //then check for WAW
+              //if the snopped data is relavent to this store
               if(!operation_data_b_ready[counter]) begin
-                $display("RS ID=%d, store data for d (regsiter %d) of station %d is not ready", ID, dest_reg[counter], counter);
-                //if the snopped data is relavent to this reservation station
+                $display("RS ID=%d, store data for dest (regsiter %d) of station %d is not ready", ID, dest_reg[counter], counter);
                 if(cdbus_dest == dest_reg[counter]) begin
-                  $display("RS ID=%d, cdbus says data is relavent (destination register %d) for load source d at station %d ", ID, dest_reg[counter], counter);
+                  $display("RS ID=%d, cdbus says store data is relavent (destination register %d) at station %d ", ID, dest_reg[counter], counter);
+                  //save the data to the bbus to be used for storing (to mem) later
+                  from_cdb = 1;
                   bbus_data[counter] = cdbus_dest_data;
                   operation_data_b_ready[counter]=1;
-                  if(counter > 0) begin: WAW_check_break_b_store
+                end
+                else if(!busy_bus[dest_reg[counter]]) begin
+                  $display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, dest_reg[counter], counter);
+                  operation_data_b_ready[counter]=1;
+                end
+                if(counter > 0) begin: WAW_check_break_store
+                  counter3 = counter-1;
+                  repeat(counter) begin
+                    if(dest_reg[counter3] == dest_reg[counter])begin
+                      $display("RS ID=%d, setting ready flag for source b of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
+                      operation_data_b_ready[counter]=0;
+                    end
+                    counter3 = counter3-1;
+                  end
+                end
+                if(operation_data_b_ready[counter] && !from_cdb) begin
+                  //it is ready, set the output address of a
+                  //it will trigger the wire to put the value at the reg index onto the abus
+                  b_select_out = dest_reg_shift[counter];
+                  b_update_index = counter;
+                  //bbus_data[counter] = bbus_in;//don't do this until the posedge part
+                  //operation_data_b_ready[counter]=1;
+                  b_update_index_flag = 1;
+                end
+              end
+              //also set operation data ready for a since it does not apply
+              operation_data_a_ready[counter] = 1;
+            end
+            3'b001: begin//load only checks busybus
+              //load address from aselect into abus (TODO)
+              //check if register is checked out(TODO)
+              //then check for WAW
+              if(!operation_data_b_ready[counter]) begin
+                $display("RS ID=%d, load data for dest (regsiter %d) of station %d is not ready", ID, dest_reg[counter], counter);
+                if(1) begin
+                //if(!busy_bus[dest_reg[counter]]) begin
+                  //$display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, dest_reg[counter], counter);
+                  $display("RS ID=%d, load always true says register %d for b is up to date for station %d", ID, dest_reg[counter], counter);
+                  operation_data_b_ready[counter]=1;
+                  if(counter > 0) begin: WAW_check_break_load
                     counter3 = counter-1;
                     repeat(counter) begin
                       if(dest_reg[counter3] == dest_reg[counter])begin
@@ -743,20 +747,65 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
                       counter3 = counter3-1;
                     end
                   end
-                end
-                else if(!busy_bus[dest_reg[counter]]) begin
-                  $display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, dest_reg[counter], counter);
-                  //it is ready, set the output address of a
-                  //it will trigger the wire to put the value at the reg index onto the abus
-                  b_select_out = dest_reg_shift[counter];
-                  b_update_index = counter;
-                  //bbus_data[counter] = bbus_in;//don't do this until the posedge part
-                  operation_data_b_ready[counter]=1;
-                  b_update_index_flag = 1;
+                  //don't need to actually trigger the bbus since we're writing into it from memory...
+                  /*
+                  if(operation_data_b_ready[counter]) begin
+                    //it is ready, set the output address of a
+                    //it will trigger the wire to put the value at the reg index onto the abus
+                    b_select_out = dest_reg_shift[counter];
+                    b_update_index = counter;
+                    //bbus_data[counter] = bbus_in;//don't do this until the posedge part
+                    //operation_data_b_ready[counter]=1;
+                    b_update_index_flag = 1;
+                  end
+                  */
                 end
               end
+              //also set operation data ready for a since it does not apply
+              operation_data_a_ready[counter] = 1;
             end
             default: begin
+              //check the cdb
+              //else check the register is checked out
+              //else check if the src and dest are the same
+              //then check for WAW
+              if(!operation_data_a_ready[counter]) begin
+                $display("RS ID=%d, data for a (regsiter %d) of station %d is not ready", ID, src_a[counter], counter);
+                //if the snopped data is relavent to this reservation station
+                if(cdbus_dest == src_a[counter]) begin
+                  $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source a at station %d ", ID, cdbus_dest, counter);
+                  //update the value with the snopped value and set data ready flag
+                  from_cdb = 1;
+                  abus_data[counter] = cdbus_dest_data;
+                  operation_data_a_ready[counter]=1;
+                end
+                else if(!busy_bus[src_a[counter]]) begin
+                  $display("RS ID=%d, busybus says register %d for a is up to date for station %d", ID, src_a[counter], counter);
+                  operation_data_a_ready[counter]=1;
+                end
+                else if(dest_reg[counter] == src_a[counter])begin
+                  $display("RS ID=%d, dest_reg and src_a match (%d) for station %d, ignoring",ID, src_a[counter],counter);
+                  operation_data_a_ready[counter]=1;
+                end
+                if(counter > 0) begin: WAW_check_break_a
+                  counter3 = counter-1;
+                  repeat(counter) begin
+                    if(dest_reg[counter3] == src_a[counter])begin
+                      $display("RS ID=%d, setting ready flag for source a of station %d back to false because hazard conflicts with destination of station %d", ID,counter,counter3);
+                      operation_data_a_ready[counter]=0;
+                    end
+                    counter3 = counter3-1;
+                  end
+                end
+                if(operation_data_a_ready[counter] && !from_cdb) begin
+                  //it is ready, set the output address of a
+                  //it will trigger the wire to put the value at the reg index onto the abus
+                  a_select_out = src_a_shift[counter];
+                  a_update_index = counter;
+                  //abus_data[counter] = abus_in;//don't do this until the posedge part
+                  a_update_index_flag = 1;
+                end
+              end
               if(src_a[counter] == src_b[counter]) begin
                 $display("RS ID=%d, src_a and b match(%d), setting match bit and copying data, station %d", ID, src_b[counter], counter);
                 a_b_equal[counter] = 1;
@@ -766,16 +815,27 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
               end
               else if(!operation_data_b_ready[counter]) begin
                 $display("RS ID=%d, data for b (regsiter %d) of station %d is not ready", ID, src_b[counter], counter);
+                //check the cdb
+                //else check the register is checked out
+                //else check if the src and dest are the same
+                //then check for WAW
                 //if the snopped data is relavent to this reservation station
-                if(dest_reg[counter] == src_b[counter])begin
-                  $display("RS ID=%d, dest_reg and src_b match (%d) for station %d, ignoring",ID, src_b[counter],counter);
-                  operation_data_b_ready[counter]=1;
-                end
+                from_cdb = 0;
                 if(cdbus_dest == src_b[counter]) begin
                   $display("RS ID=%d, cdbus says data is relavent (destination register %d) for source b at station %d ", ID, src_b[counter], counter);
                   bbus_data[counter] = cdbus_dest_data;
+                  from_cdb = 1;
                   operation_data_b_ready[counter]=1;
-                  if(counter > 0) begin: WAW_check_break_b
+                end
+                else if(!busy_bus[src_b[counter]]) begin
+                  $display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, src_b[counter], counter);
+                  operation_data_b_ready[counter]=1;
+                end
+                else if(dest_reg[counter] == src_b[counter])begin
+                  $display("RS ID=%d, dest_reg and src_b match (%d) for station %d, ignoring",ID, src_b[counter],counter);
+                  operation_data_b_ready[counter]=1;
+                end
+                if(counter > 0) begin: WAW_check_break_b
                     counter3 = counter-1;
                     repeat(counter) begin
                       if(dest_reg[counter3] == src_b[counter])begin
@@ -784,16 +844,13 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
                       end
                       counter3 = counter3-1;
                     end
-                  end
                 end
-                else if(!busy_bus[src_b[counter]]) begin
-                  $display("RS ID=%d, busybus says register %d for b is up to date for station %d", ID, src_b[counter], counter);
+                if(operation_data_b_ready[counter] && !from_cdb)begin
                   //it is ready, set the output address of a
                   //it will trigger the wire to put the value at the reg index onto the abus
                   b_select_out = src_b_shift[counter];
                   b_update_index = counter;
                   //bbus_data[counter] = bbus_in;//don't do this until the posedge part
-                  operation_data_b_ready[counter]=1;
                   b_update_index_flag = 1;
                 end
               end
@@ -827,6 +884,9 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000)
     begin:data_output_break
       //only touch the output bus if you have to!
       repeat(BUS_LENGTH+1) begin:data_output_continue
+        //if(station_in_use[counter])begin
+          //$display("RS ID=%d, station %d is in use, operation_data_a_ready=%d, operation_data_b_ready=%d", ID,counter,operation_data_a_ready[counter],operation_data_b_ready[counter]);
+        //end
         if(station_in_use[counter] && operation_data_a_ready[counter] && operation_data_b_ready[counter] && !execution_unit_busy) begin
           if((ID==3'b010) && (store_mux_stall))begin
             $display("RS ID=%d, stalled due to waiting on mux", ID);
@@ -991,6 +1051,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
         2'b00: begin
           //integer execution unit
           //nothing yet...
+          $display("ERROR: 
         end
         2'b01: begin
           //FP multiplier unit
@@ -1066,7 +1127,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   
   //stall trigger for the cdbus mux, disable the execution unit
   always @(posedge stall_by_mux) begin
-    $display("(posedge stall_by_mux) stall_by_mux detected for execution unit %d",ID);
+    $display("(posedge stall_by_mux) posedge stall_by_mux detected for execution unit %d, set self to busy",ID);
     is_busy = 1;
     counter = counter_backup;
   end
@@ -1075,7 +1136,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   //can therefore execute next instruction
   always @(negedge stall_by_mux) begin
     if(counter > CYCLE_TIME) begin
-      $display("(negedge stall_by_mux) stall_by_mux detected for execution unit %d with counter > CYCLE_TIME true",ID);
+      $display("(negedge stall_by_mux) negedge stall_by_mux detected for execution unit %d with counter > CYCLE_TIME true, self no longer busy",ID);
       //mux just put it's data on the bus, can set busy to false
       is_busy = 0;
       counter = 0;
@@ -1438,7 +1499,7 @@ module DNegflipFlop
   
   initial begin
   //start the registers empty
-  data = 32'h00000001;
+  data = 32'h00000000;
   isBusy = 0;
   end
   
