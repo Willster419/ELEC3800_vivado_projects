@@ -395,28 +395,28 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     ///////////////////////////////////////////////////////////////////////
     instruction_queue[0] [17:0] = 18'b001_001_010100000000;  //ld, r1,0x500
     instruction_queue[1] [17:0] = 18'b001_010_010100001000;  //ld, r2,0x508
-    instruction_queue[2] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue[3] [17:0] = 18'b010_011_010100001000;  //st, r3,0x508
+    instruction_queue[2] [17:0] = 18'b011_001_001_010_000000;//add,r1,r1,r2//forces instruction to wait on r2
+    instruction_queue[3] [17:0] = 18'b010_001_010100001000;  //st, r1,0x508
     
     ///////////////////////////////////////////////////////////////////////
-    instruction_queue[4] [17:0] = 18'b001_100_010100010000;  //ld, r4,0x510
-    instruction_queue[5] [17:0] = 18'b001_101_010100011000;  //ld, r5,0x518
-    instruction_queue[6] [17:0] = 18'b011_110_100_101_000000;//add,r6,r4,r5
-    instruction_queue[7] [17:0] = 18'b010_110_010100011000;  //st, r6,0x518
-    /*
+    instruction_queue[4] [17:0] = 18'b001_100_010100010000;  //ld, r3,0x510
+    instruction_queue[5] [17:0] = 18'b001_101_010100011000;  //ld, r4,0x518
+    instruction_queue[6] [17:0] = 18'b011_110_100_101_000000;//add,r3,r4,r5
+    instruction_queue[7] [17:0] = 18'b010_110_010100011000;  //st, r3,0x518
+    
     ///////////////////////////////////////////////////////////////////////
-    instruction_queue[8] [17:0] = 18'b001_001_010100100000;  //ld, r1,0x520
-    instruction_queue[9] [17:0] = 18'b001_010_010100101000;  //ld, r2,0x528
-    instruction_queue[10] [17:0] = 18'b011_011_101_110_000000;//add,r3,r5,r6
-    instruction_queue[11] [17:0] = 18'b010_011_010100101000;  //st, r3,0x528
+    instruction_queue[8] [17:0] = 18'b001_001_010100100000;  //ld, r5,0x520
+    instruction_queue[9] [17:0] = 18'b001_010_010100101000;  //ld, r6,0x528
+    instruction_queue[10] [17:0] = 18'b011_011_101_110_000000;//add,r5,r5,r6
+    instruction_queue[11] [17:0] = 18'b010_011_010100101000;  //st, r5,0x528
     ///////////////////////////////////////////////////////////////////////
     
     instruction_queue[12] [17:0] = 18'b001_111_010100110000;  //ld, r7,0x530
     instruction_queue[13] [17:0] = 18'b001_001_010100111000;  //ld, r1,0x538
-    instruction_queue[14] [17:0] = 18'b011_001_111_001_000000;//add,r1,r7,r1
-    instruction_queue[15] [17:0] = 18'b010_001_010100111000;  //st, r1,0x538
+    instruction_queue[14] [17:0] = 18'b011_001_111_001_000000;//add,r7,r7,r1
+    instruction_queue[15] [17:0] = 18'b010_001_010100111000;  //st, r7,0x538
     ///////////////////////////////////////////////////////////////////////
-    
+    /*
     instruction_queue[16] [17:0] = 18'b001_001_010101000000;  //ld, r1,0x540
     instruction_queue[17] [17:0] = 18'b001_010_010101001000;  //ld, r2,0x548
     instruction_queue[18] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
@@ -445,6 +445,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     instruction_queue2[2] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
     instruction_queue2[3] [17:0] = 18'b010_011_010110001000;  //st, r3,0x588
     ////////////////////////////////////////////////////////////////////////
+    /*
     instruction_queue2[4] [17:0] = 18'b001_001_010110010000;  //ld, r1,0x590
     instruction_queue2[5] [17:0] = 18'b001_010_010110011000;  //ld, r2,0x598
     instruction_queue2[6] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
@@ -480,6 +481,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     instruction_queue2[30] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
     instruction_queue2[31] [17:0] = 18'b010_011_010111111000;  //st, r3,0x5F8
     ////////////////////////////////////////////////////////////////////////
+    */
   end
   
   always @(posedge clk) begin
