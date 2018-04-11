@@ -51,15 +51,15 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //connects the instructon queue (top module for now)
   //to the reservation stations
   wire [2:0] opbus_opcode;
-  wire [2:0] opbus_dest;
-  wire [2:0] opbus_src_a;
-  wire [2:0] opbus_src_b;
+  wire [3:0] opbus_dest;
+  wire [3:0] opbus_src_a;
+  wire [3:0] opbus_src_b;
   wire [11:0] cache_address;
   
   //the wires used for the common data bus
   //connects the mux to the regfile and reservation statrions
-  wire [2:0] cdbus_dest;
-  wire [7:0] cdbus_dest_shift;
+  wire [3:0] cdbus_dest;
+  wire [15:0] cdbus_dest_shift;
   wire [7:0] cdbus_data;
   wire cdbus_valid_data;
   
@@ -73,48 +73,48 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   wire [7:0] bbus_wire_add;
   wire [7:0] bbus_wire_mult;
   wire [7:0] bbus_wire_int;
-  wire [7:0] a_select_wire_ld_st;
-  wire [7:0] a_select_wire_add;
-  wire [7:0] a_select_wire_mult;
-  wire [7:0] a_select_wire_int;
-  wire [7:0] b_select_wire_ld_st;
-  wire [7:0] b_select_wire_add;
-  wire [7:0] b_select_wire_mult;
-  wire [7:0] b_select_wire_int;
-  wire [7:0] busy_bus;
+  wire [15:0] a_select_wire_ld_st;
+  wire [15:0] a_select_wire_add;
+  wire [15:0] a_select_wire_mult;
+  wire [15:0] a_select_wire_int;
+  wire [15:0] b_select_wire_ld_st;
+  wire [15:0] b_select_wire_add;
+  wire [15:0] b_select_wire_mult;
+  wire [15:0] b_select_wire_int;
+  wire [15:0] busy_bus;
   
   //wires connecting the reservation stations to the execution units
   //FP_ADD
   wire [2:0] rs_ex_fp_op_code;
-  wire [2:0] rs_ex_fp_d_select;
-  wire [7:0] rs_ex_fp_d_select_shift;
+  wire [3:0] rs_ex_fp_d_select;
+  wire [15:0] rs_ex_fp_d_select_shift;
   wire [7:0] rs_ex_fp_abus_data;
   wire [7:0] rs_ex_fp_bbus_data;
   wire rs_ex_fp_add_is_busy;
   //FP_MULT
   wire [2:0] rs_ex_fp_mult_op_code;
-  wire [2:0] rs_ex_fp_mult_d_select;
-  wire [7:0] rs_ex_fp_mult_d_select_shift;
+  wire [3:0] rs_ex_fp_mult_d_select;
+  wire [15:0] rs_ex_fp_mult_d_select_shift;
   wire [7:0] rs_ex_fp_mult_abus_data;
   wire [7:0] rs_ex_fp_mult_bbus_data;
   wire rs_ex_fp_mult_is_busy;
   //INT
   wire [2:0] rs_ex_int_op_code;
-  wire [2:0] rs_ex_int_d_select;
-  wire [7:0] rs_ex_int_d_select_shift;
+  wire [3:0] rs_ex_int_d_select;
+  wire [15:0] rs_ex_int_d_select_shift;
   wire [7:0] rs_ex_int_abus_data;
   wire [7:0] rs_ex_int_bbus_data;
   wire rs_ex_int_is_busy;
   //LOAD
   wire [2:0] rs_ex_ld_op_code;
-  wire [2:0] rs_ex_ld_d_select;
-  wire [7:0] rs_ex_ld_d_select_shift;
+  wire [3:0] rs_ex_ld_d_select;
+  wire [15:0] rs_ex_ld_d_select_shift;
   wire [7:0] rs_ex_ld_abus_data;
   wire [7:0] rs_ex_ld_bbus_data;
   //STORE
   wire [2:0] rs_ex_st_op_code;
-  wire [2:0] rs_ex_st_d_select;
-  wire [7:0] rs_ex_st_d_select_shift;
+  wire [3:0] rs_ex_st_d_select;
+  wire [15:0] rs_ex_st_d_select_shift;
   wire [7:0] rs_ex_st_abus_data;
   wire [7:0] rs_ex_st_bbus_data;
   wire rs_ex_ld_st_is_busy;
@@ -122,26 +122,26 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //wires connecting the execution units to the mux
   //FP_ADD
   wire FP_add_mux_valid_data;
-  wire [2:0] FP_add_mux_d_select;
-  wire [7:0] FP_add_mux_d_select_shift;
+  wire [3:0] FP_add_mux_d_select;
+  wire [15:0] FP_add_mux_d_select_shift;
   wire [7:0] FP_add_mux_data;
   wire FP_add_mux_stall;
   //FP_MULT
   wire FP_mult_mux_valid_data;
-  wire [2:0] FP_mult_mux_d_select;
-  wire [7:0] FP_mult_mux_d_select_shift;
+  wire [3:0] FP_mult_mux_d_select;
+  wire [15:0] FP_mult_mux_d_select_shift;
   wire [7:0] FP_mult_mux_data;
   wire FP_mult_mux_stall;
   //INT
   wire int_mux_valid_data;
-  wire [2:0] int_mux_d_select;
-  wire [7:0] int_mux_d_select_shift;
+  wire [3:0] int_mux_d_select;
+  wire [15:0] int_mux_d_select_shift;
   wire [7:0] int_mux_data;
   wire int_mux_stall;
   //LOAD/STORE
   wire mem_mux_valid_data;
-  wire [2:0] mem_mux_d_select;
-  wire [7:0] mem_mux_d_select_shift;
+  wire [3:0] mem_mux_d_select;
+  wire [15:0] mem_mux_d_select_shift;
   wire [7:0] mem_mux_data;
   wire mem_mux_stall;
   
@@ -173,12 +173,12 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   wire RS_store_mux_stall;
   wire [7:0] RS_store_data;//dbus data
   //load
-  wire [2:0] RS_load_dest;//d select
-  wire [7:0] RS_load_dest_shift;//d select
+  wire [3:0] RS_load_dest;//d select
+  wire [15:0] RS_load_dest_shift;//d select
   
   //the wires connect the lload and store RS to the mux
-  wire [2:0] mem_ex_d_select;
-  wire [7:0] mem_ex_d_select_shift;
+  wire [3:0] mem_ex_d_select;
+  wire [15:0] mem_ex_d_select_shift;
   wire [2:0] mem_ex_b_offset;
   wire [7:0] mem_ex_dbus_data;
   wire [11:0] mem_ex_abus_address;
@@ -188,9 +188,9 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //first bracket is how wide each register is
   //second bracket is now many in the array
   //we want 32 instruction queues of 18 bits wide
-  reg [17:0] instruction_queue [31:0];
-  reg [17:0] instruction_queue2 [31:0];
-  reg [17:0] current_instruction;
+  reg [18:0] instruction_queue [31:0];
+  reg [18:0] instruction_queue2 [31:0];
+  reg [18:0] current_instruction;
   
   //counter for the dequeue for loop
   integer i;
@@ -203,7 +203,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   
   //the control bit for setting the high bit for the regfile if the dest reg in use
   //width needs to be the number of regs
-  reg [7:0] busy_select_shift;
+  reg [15:0] busy_select_shift;
   
   //wire for telling the execution unit which CPU_ID it is
   wire CPU_ID_WIRE;
@@ -365,9 +365,9 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     int_full_full_flag = 0;
     //set the fake clock
     fake_rs_clock = 0;
-    busy_select_shift = 8'b0;
+    busy_select_shift = 16'b0;
     //set the current instructin to nothing
-    current_instruction = 18'b0;
+    current_instruction = 19'b0;
     /*
     Current specs:
     3 opcode bits (8 instructions total)
@@ -375,13 +375,13 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     (if not load/store) 3 register select bits for source 1 (ra)
     (if not load/store) 3 register select bits for sourece 2 (rb)
     (if load/store) 12 address bits
-    format (not load/store): 000__000 __000 __000 __000000
+    format (not load/store): 000__0000__0000__0000__0000
                              op __dest__src1__src2__not used
-                             (12 bit width)
-    format (load/store):     000__000 __000000000000
+                             (19 bit width)
+    format (load/store):     000__0000__000000000000
                    load:     op __dest__address
                   store:     op __src __address
-                             (18 bit width)
+                             (19 bit width)
     */
     /*
     Current Instruction List:
@@ -392,95 +392,95 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     MULTF 100
     */
     //fill the instruction queue of p1
-    ///////////////////////////////////////////////////////////////////////
-    instruction_queue[0] [17:0] = 18'b001_001_010100000000;  //ld, r1,0x500
-    instruction_queue[1] [17:0] = 18'b001_010_010100001000;  //ld, r2,0x508
-    instruction_queue[2] [17:0] = 18'b011_001_001_010_000000;//add,r1,r1,r2//forces instruction to wait on r2
-    instruction_queue[3] [17:0] = 18'b010_001_010100001000;  //st, r1,0x508
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue[0]  [18:0] = 19'b001_1001_010100000000;  //ld, r1,0x500
+    instruction_queue[1]  [18:0] = 19'b001_0010_010100001000;  //ld, r2,0x508
+    instruction_queue[2]  [18:0] = 19'b011_0011_1001_0010_0000;  //add,r3,r1,r2//forces instruction to wait on r2
+    instruction_queue[3]  [18:0] = 19'b010_0011_010100001000;  //st, r3,0x508
     
-    ///////////////////////////////////////////////////////////////////////
-    instruction_queue[4] [17:0] = 18'b001_100_010100010000;  //ld, r3,0x510
-    instruction_queue[5] [17:0] = 18'b001_101_010100011000;  //ld, r4,0x518
-    instruction_queue[6] [17:0] = 18'b011_110_100_101_000000;//add,r3,r4,r5
-    instruction_queue[7] [17:0] = 18'b010_110_010100011000;  //st, r3,0x518
-    
-    ///////////////////////////////////////////////////////////////////////
-    instruction_queue[8] [17:0] = 18'b001_001_010100100000;  //ld, r5,0x520
-    instruction_queue[9] [17:0] = 18'b001_010_010100101000;  //ld, r6,0x528
-    instruction_queue[10] [17:0] = 18'b011_011_101_110_000000;//add,r5,r5,r6
-    instruction_queue[11] [17:0] = 18'b010_011_010100101000;  //st, r5,0x528
-    ///////////////////////////////////////////////////////////////////////
-    
-    instruction_queue[12] [17:0] = 18'b001_111_010100110000;  //ld, r7,0x530
-    instruction_queue[13] [17:0] = 18'b001_001_010100111000;  //ld, r1,0x538
-    instruction_queue[14] [17:0] = 18'b011_001_111_001_000000;//add,r7,r7,r1
-    instruction_queue[15] [17:0] = 18'b010_001_010100111000;  //st, r7,0x538
-    ///////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue[4]  [18:0] = 19'b001_0100_010100010000;  //ld, r4,0x510
+    instruction_queue[5]  [18:0] = 19'b001_0101_010100011000;  //ld, r5,0x518
+    instruction_queue[6]  [18:0] = 19'b011_0110_0100_0101_0000;  //add,r6,r4,r5
+    instruction_queue[7]  [18:0] = 19'b010_0110_010100011000;  //st, r6,0x518
     /*
-    instruction_queue[16] [17:0] = 18'b001_001_010101000000;  //ld, r1,0x540
-    instruction_queue[17] [17:0] = 18'b001_010_010101001000;  //ld, r2,0x548
-    instruction_queue[18] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue[19] [17:0] = 18'b010_011_010101001000;  //st, r3,0x548
-    ///////////////////////////////////////////////////////////////////////
-    instruction_queue[20] [17:0] = 18'b001_001_010101010000;  //ld, r1,0x550
-    instruction_queue[21] [17:0] = 18'b001_010_010101011000;  //ld, r2,0x558
-    instruction_queue[22] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue[23] [17:0] = 18'b010_011_010101011000;  //st, r3,0x558
-    ///////////////////////////////////////////////////////////////////////
-    instruction_queue[24] [17:0] = 18'b001_001_010101100000;  //ld, r1,0x560
-    instruction_queue[25] [17:0] = 18'b001_010_010101101000;  //ld, r2,0x568
-    instruction_queue[26] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue[27] [17:0] = 18'b010_011_010101101000;  //st, r3,0x568
-    ///////////////////////////////////////////////////////////////////////
-    instruction_queue[28] [17:0] = 18'b001_001_010101110000;  //ld, r1,0x570
-    instruction_queue[29] [17:0] = 18'b001_010_010101111000;  //ld, r2,0x578
-    instruction_queue[30] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue[31] [17:0] = 18'b010_011_010101111000;  //st, r3,0x578
-    ///////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue[8]  [18:0] = 19'b001_0101_010100100000;  //ld, r5,0x520
+    instruction_queue[9]  [18:0] = 19'b001_0110_010100101000;  //ld, r6,0x528
+    instruction_queue[10] [18:0] = 19'b011_0101_0101_0110_0000;  //add,r5,r5,r6
+    instruction_queue[11] [18:0] = 19'b010_0101_010100101000;  //st, r5,0x528
+    ////////////////////////////////////////////////////////////////////////
+    
+    instruction_queue[12] [18:0] = 19'b001_0111_010100110000;  //ld, r7,0x530
+    instruction_queue[13] [18:0] = 19'b001_0100_010100111000;  //ld, r8,0x538
+    instruction_queue[14] [18:0] = 19'b011_0111_0111_0100_0000;  //add,r7,r7,r8
+    instruction_queue[15] [18:0] = 19'b010_0111_010100111000;  //st, r7,0x538
+    ////////////////////////////////////////////////////////////////////////
+    
+    instruction_queue[16] [18:0] = 19'b001_001_010101000000;  //ld, r9,0x540
+    instruction_queue[17] [18:0] = 19'b001_010_010101001000;  //ld, r10,0x548
+    instruction_queue[18] [18:0] = 19'b011_011_001_010_000000;//add,r9,r1,r2
+    instruction_queue[19] [18:0] = 19'b010_011_010101001000;  //st, r9,0x548
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue[20] [18:0] = 19'b001_001_010101010000;  //ld, r11,0x550
+    instruction_queue[21] [18:0] = 19'b001_010_010101011000;  //ld, r12,0x558
+    instruction_queue[22] [18:0] = 19'b011_011_001_010_000000;//add,r11,r1,r2
+    instruction_queue[23] [18:0] = 19'b010_011_010101011000;  //st, r11,0x558
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue[24] [18:0] = 19'b001_001_010101100000;  //ld, r13,0x560
+    instruction_queue[25] [18:0] = 19'b001_010_010101101000;  //ld, r14,0x568
+    instruction_queue[26] [18:0] = 19'b011_011_001_010_000000;//add,r13,r1,r2
+    instruction_queue[27] [18:0] = 19'b010_011_010101101000;  //st, r13,0x568
+    ////////////////////////////////////////////////////////////////////////
+    instruction_queue[28] [18:0] = 19'b001_001_010101110000;  //ld, r15,0x570
+    instruction_queue[29] [18:0] = 19'b001_010_010101111000;  //ld, r1,0x578
+    instruction_queue[30] [18:0] = 19'b011_011_001_010_000000;//add,r15,r1,r2
+    instruction_queue[31] [18:0] = 19'b010_011_010101111000;  //st, r15,0x578
+    ////////////////////////////////////////////////////////////////////////
     */
     //fill the instruction queue of p2
-    ////////////////////////////////////////////////////////////////////////
-    instruction_queue2[0] [17:0] = 18'b001_001_010110000000;  //ld, r1,0x580
-    instruction_queue2[1] [17:0] = 18'b001_010_010110001000;  //ld, r2,0x588
-    instruction_queue2[2] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue2[3] [17:0] = 18'b010_011_010110001000;  //st, r3,0x588
-    ////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////
+    instruction_queue2[0]  [18:0] = 19'b001_001_010110000000;  //ld, r1,0x580
+    instruction_queue2[1]  [18:0] = 19'b001_010_010110001000;  //ld, r2,0x588
+    instruction_queue2[2]  [18:0] = 19'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[3]  [18:0] = 19'b010_011_010110001000;  //st, r3,0x588
+    /////////////////////////////////////////////////////////////////////////
     /*
-    instruction_queue2[4] [17:0] = 18'b001_001_010110010000;  //ld, r1,0x590
-    instruction_queue2[5] [17:0] = 18'b001_010_010110011000;  //ld, r2,0x598
-    instruction_queue2[6] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue2[7] [17:0] = 18'b010_011_010110011000;  //st, r3,0x598
-    ////////////////////////////////////////////////////////////////////////
-    instruction_queue2[8] [17:0] = 18'b001_001_010110100000;  //ld, r1,0x5A0
-    instruction_queue2[9] [17:0] = 18'b001_010_010110101000;  //ld, r2,0x5A8
-    instruction_queue2[10] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue2[11] [17:0] = 18'b010_011_010110101000;  //st, r3,0x5A8
-    ////////////////////////////////////////////////////////////////////////
-    instruction_queue2[12] [17:0] = 18'b001_001_010110110000;  //ld, r1,0x5B0
-    instruction_queue2[13] [17:0] = 18'b001_010_010110111000;  //ld, r2,0x5B8
-    instruction_queue2[14] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue2[15] [17:0] = 18'b010_011_010110111000;  //st, r3,0x5B8
-    ////////////////////////////////////////////////////////////////////////
-    instruction_queue2[16] [17:0] = 18'b001_001_010111000000;  //ld, r1,0x5C0
-    instruction_queue2[17] [17:0] = 18'b001_010_010111001000;  //ld, r2,0x5C8
-    instruction_queue2[18] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue2[19] [17:0] = 18'b010_011_010111001000;  //st, r3,0x5C8
-    ////////////////////////////////////////////////////////////////////////
-    instruction_queue2[20] [17:0] = 18'b001_001_010111010000;  //ld, r1,0x5D0
-    instruction_queue2[21] [17:0] = 18'b001_010_010111011000;  //ld, r2,0x5D8
-    instruction_queue2[22] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue2[23] [17:0] = 18'b010_011_010111011000;  //st, r3,0x5D8
-    ////////////////////////////////////////////////////////////////////////
-    instruction_queue2[24] [17:0] = 18'b001_001_010111100000;  //ld, r1,0x5E0
-    instruction_queue2[25] [17:0] = 18'b001_010_010111101000;  //ld, r2,0x5E8
-    instruction_queue2[26] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue2[27] [17:0] = 18'b010_011_010111101000;  //st, r3,0x5E8
-    ////////////////////////////////////////////////////////////////////////
-    instruction_queue2[28] [17:0] = 18'b001_001_010111110000;  //ld, r1,0x5F0
-    instruction_queue2[29] [17:0] = 18'b001_010_010111111000;  //ld, r2,0x5F8
-    instruction_queue2[30] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
-    instruction_queue2[31] [17:0] = 18'b010_011_010111111000;  //st, r3,0x5F8
-    ////////////////////////////////////////////////////////////////////////
+    instruction_queue2[4]  [18:0] = 19'b001_001_010110010000;  //ld, r1,0x590
+    instruction_queue2[5]  [18:0] = 19'b001_010_010110011000;  //ld, r2,0x598
+    instruction_queue2[6]  [18:0] = 19'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[7]  [18:0] = 19'b010_011_010110011000;  //st, r3,0x598
+    /////////////////////////////////////////////////////////////////////////
+    instruction_queue2[8]  [18:0] = 19'b001_001_010110100000;  //ld, r1,0x5A0
+    instruction_queue2[9]  [18:0] = 19'b001_010_010110101000;  //ld, r2,0x5A8
+    instruction_queue2[10] [18:0] = 19'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[11] [18:0] = 19'b010_011_010110101000;  //st, r3,0x5A8
+    /////////////////////////////////////////////////////////////////////////
+    instruction_queue2[12] [18:0] = 19'b001_001_010110110000;  //ld, r1,0x5B0
+    instruction_queue2[13] [18:0] = 19'b001_010_010110111000;  //ld, r2,0x5B8
+    instruction_queue2[14] [18:0] = 19'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[15] [18:0] = 19'b010_011_010110111000;  //st, r3,0x5B8
+    /////////////////////////////////////////////////////////////////////////
+    instruction_queue2[16] [18:0] = 19'b001_001_010111000000;  //ld, r1,0x5C0
+    instruction_queue2[17] [18:0] = 19'b001_010_010111001000;  //ld, r2,0x5C8
+    instruction_queue2[18] [18:0] = 19'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[19] [18:0] = 19'b010_011_010111001000;  //st, r3,0x5C8
+    /////////////////////////////////////////////////////////////////////////
+    instruction_queue2[20] [18:0] = 19'b001_001_010111010000;  //ld, r1,0x5D0
+    instruction_queue2[21] [18:0] = 19'b001_010_010111011000;  //ld, r2,0x5D8
+    instruction_queue2[22] [18:0] = 19'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[23] [18:0] = 19'b010_011_010111011000;  //st, r3,0x5D8
+    /////////////////////////////////////////////////////////////////////////
+    instruction_queue2[24] [18:0] = 19'b001_001_010111100000;  //ld, r1,0x5E0
+    instruction_queue2[25] [18:0] = 19'b001_010_010111101000;  //ld, r2,0x5E8
+    instruction_queue2[26] [18:0] = 19'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[27] [18:0] = 19'b010_011_010111101000;  //st, r3,0x5E8
+    /////////////////////////////////////////////////////////////////////////
+    instruction_queue2[28] [18:0] = 19'b001_001_010111110000;  //ld, r1,0x5F0
+    instruction_queue2[29] [18:0] = 19'b001_010_010111111000;  //ld, r2,0x5F8
+    instruction_queue2[30] [18:0] = 19'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue2[31] [18:0] = 19'b010_011_010111111000;  //st, r3,0x5F8
+    /////////////////////////////////////////////////////////////////////////
     */
   end
   
@@ -494,11 +494,11 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     int_selected_flag = 0;
     //set the busy_select to 0. it only triggers on the posedge so it won't be an issue
     busy_select_shift = 8'b0;
-    current_instruction = 18'b0;
+    current_instruction = 19'b0;
     //copy the instruction to the current instruction reg
     //current_instruction[17:0] = instruction_queue[0];
-    current_instruction[17:0] = CPU_ID? instruction_queue2[0]:instruction_queue[0];
-    case (current_instruction[17:15])
+    current_instruction[18:0] = CPU_ID? instruction_queue2[0]:instruction_queue[0];
+    case (current_instruction[18:16])
       3'b000: begin
         //nop
         //don't select any execution units...
@@ -527,7 +527,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
       //if the destination is r0, don't bother cause it's the 0 register
       //also don't set it for stores (read only)
       if(!store_selected_flag) begin
-        busy_select_shift = (current_instruction[14:12] == 3'b0)? 8'b0 : 8'b00000001 << current_instruction[14:12];
+        busy_select_shift = (current_instruction[15:12] == 3'b0)? 16'b0 : 16'b00000001 << current_instruction[15:12];
       end
       //shift the entries down from the queue
       //act as the dequeue
@@ -542,8 +542,8 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
         endcase
       end
       //fill the last one with zeros
-      instruction_queue[31] = 18'b0;
-      instruction_queue[31] = 18'b0;
+      instruction_queue[31] = 19'b0;
+      instruction_queue[31] = 19'b0;
     end
     //invert the clock so that it #triggers the reservation station
     //while also giving the assigns enough time to work
@@ -551,10 +551,10 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   end
   
   //generic assign statemetns for the operation bus (opbus)
-  assign opbus_opcode = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[17:15] : 3'bz;
-  assign opbus_dest = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[14:12] : 3'bz;
-  assign opbus_src_a = (FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[11:9] : 3'bz;
-  assign opbus_src_b = (FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[8:6] : 3'bz;
+  assign opbus_opcode = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[18:16] : 3'bz;
+  assign opbus_dest = (store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[15:12] : 4'bz;
+  assign opbus_src_a = (FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[11:8] : 4'bz;
+  assign opbus_src_b = (FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag)? current_instruction[7:4] : 4'bz;
   assign cache_address = (store_selected_flag||load_selected_flag)? current_instruction[11:0] : 12'bz;
   assign CPU_ID_WIRE = CPU_ID;
 endmodule
@@ -583,29 +583,29 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
   input station_selected;
   //link to the op bus components
   input [2:0] opbus_op;
-  input [2:0] opbus_dest;
-  input [2:0] opbus_src_a;
-  input [2:0] opbus_src_b;
+  input [3:0] opbus_dest;
+  input [3:0] opbus_src_a;
+  input [3:0] opbus_src_b;
   //the inputs from the regfile
   input [7:0] abus_in,bbus_in;
   //the array of busy buses from the regfile. it's a wire here so always updated
-  input [7:0] busy_bus;
+  input [15:0] busy_bus;
   //flag for if the execution unit is busy
   input execution_unit_busy;
   //the common data bus for snooping
-  input [2:0] cdbus_dest;
-  input [7:0] cdbus_dest_shift;
+  input [3:0] cdbus_dest;
+  input [15:0] cdbus_dest_shift;
   input [7:0] cdbus_dest_data;
   input cdbus_valid;
   input store_mux_stall;
   //for the load and store RS, the address input from the queue
   input [11:0] address_in;
   //the selector to the regfile for which register to use in the abus
-  output reg [7:0] a_select_out;
-  output reg [7:0] b_select_out;
+  output reg [15:0] a_select_out;
+  output reg [15:0] b_select_out;
   //the selector to the execution for which register to write to
-  output reg [7:0] d_select_out_shift;
-  output reg [2:0] d_select_out;
+  output reg [15:0] d_select_out_shift;
+  output reg [3:0] d_select_out;
   //the output for the data from the abus and bbus data arrays
   output reg [7:0] abus_out, bbus_out;
   //the opcode for the execution
@@ -627,12 +627,12 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
   //TODO: stop storing the shift of the register selection like a scrub
   //TODO: make the storage one giant register to make it less code
   reg[2:0] op_code [BUS_LENGTH:0];
-  reg[2:0] dest_reg [BUS_LENGTH:0];
-  reg[7:0] dest_reg_shift [BUS_LENGTH:0];
-  reg[2:0] src_a [BUS_LENGTH:0];
-  reg[7:0] src_a_shift [BUS_LENGTH:0];
-  reg[2:0] src_b [BUS_LENGTH:0];
-  reg[7:0] src_b_shift [BUS_LENGTH:0];
+  reg[3:0] dest_reg [BUS_LENGTH:0];
+  reg[15:0] dest_reg_shift [BUS_LENGTH:0];
+  reg[3:0] src_a [BUS_LENGTH:0];
+  reg[15:0] src_a_shift [BUS_LENGTH:0];
+  reg[3:0] src_b [BUS_LENGTH:0];
+  reg[15:0] src_b_shift [BUS_LENGTH:0];
   //the data from the regfile
   reg[7:0] abus_data[BUS_LENGTH:0];
   reg[7:0] bbus_data[BUS_LENGTH:0];
@@ -667,10 +667,10 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
     a_update_index_flag = 0;
     b_update_index_flag = 0;
     //init everyting to 0
-    a_select_out = 8'bz;
-    b_select_out = 8'bz;
-    d_select_out = 8'bz;
-    d_select_out_shift = 8'bz;
+    a_select_out = 16'bz;
+    b_select_out = 16'bz;
+    d_select_out = 16'bz;
+    d_select_out_shift = 16'bz;
     address_out = 12'bz;
     abus_out = 8'bz;
     bbus_out = 8'bz;
@@ -683,12 +683,12 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
     from_cdb = 0;
     repeat(BUS_LENGTH+1) begin
       op_code[counter] = 3'b0;
-      dest_reg[counter] = 3'b0;
-      dest_reg_shift[counter] = 8'b0;
-      src_a[counter] = 3'b0;
-      src_a_shift[counter] = 8'b0;
-      src_b[counter] = 3'b0;
-      src_b_shift[counter] = 8'b0;
+      dest_reg[counter] = 4'b0;
+      dest_reg_shift[counter] = 16'b0;
+      src_a[counter] = 4'b0;
+      src_a_shift[counter] = 16'b0;
+      src_b[counter] = 4'b0;
+      src_b_shift[counter] = 16'b0;
       abus_data[counter] = 8'b0;
       bbus_data[counter] = 8'b0;
       operation_data_a_ready[counter] = 0;
@@ -723,12 +723,12 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
             $display("CPU_ID=%b, RS ID=%d, station %d is not in use, filling",CPU_ID, ID, counter);
             //update hte value in that counter
             op_code[counter] [2:0] = opbus_op;
-            dest_reg_shift[counter] [7:0] = 8'b00000001 << opbus_dest;
-            dest_reg[counter] [2:0] = opbus_dest;
-            src_a[counter] [2:0] = opbus_src_a;
-            src_b[counter] [2:0] = opbus_src_b;
-            src_a_shift[counter] [7:0] = 8'b00000001 << opbus_src_a;
-            src_b_shift[counter] [7:0] = 8'b00000001 << opbus_src_b;
+            dest_reg_shift[counter] [15:0] = 16'b00000001 << opbus_dest;
+            dest_reg[counter] [3:0] = opbus_dest;
+            src_a[counter] [3:0] = opbus_src_a;
+            src_b[counter] [3:0] = opbus_src_b;
+            src_a_shift[counter] [15:0] = 16'b00000001 << opbus_src_a;
+            src_b_shift[counter] [15:0] = 16'b00000001 << opbus_src_b;
             a_b_equal[counter] = 0;
             operation_data_a_ready[counter] = 0;
             operation_data_b_ready[counter] = 0;
@@ -1051,8 +1051,8 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
           $display("CPU_ID=%b, RS ID=%d, no instructions ready for execution unit, closing outputs", CPU_ID, ID);
           abus_out = 8'bz;
           bbus_out = 8'bz;
-          d_select_out = 3'bz;
-          d_select_out_shift = 8'bz;
+          d_select_out = 4'bz;
+          d_select_out_shift = 16'bz;
           op_code_out = 3'bz;
         end
       end
@@ -1083,8 +1083,8 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   input clk;
   //the inputs from the reservation station
   input [2:0] op_code_in;
-  input [2:0] d_select_in;
-  input [7:0] d_select_shift_in;
+  input [3:0] d_select_in;
+  input [15:0] d_select_shift_in;
   input [7:0] abus_data_in;
   input [7:0] bbus_data_in;
   //the input from the mux if there's two or more requests for the cdb and one execution needs to stall
@@ -1105,8 +1105,8 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   output reg valid_data;
   //the actual outputs for above, but in output form
   output reg [7:0] dbus_data_out;
-  output reg [2:0] d_select_out;
-  output reg [7:0] d_select_shift_out;
+  output reg [3:0] d_select_out;
+  output reg [15:0] d_select_shift_out;
   output reg fake_clock;
   //the cache request for the memory storing or loading
   output reg [21:0] cache_request;
@@ -1221,8 +1221,8 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
             $display("CPU_ID=%b, execution unit: cache_in data is for this processor",CPU_ID);
             if(cache_in[20])begin//store to cache, no writeback
               dbus_data_out = 8'b0;
-              d_select_out = 3'b0;
-              d_select_shift_out = 8'b00000001;
+              d_select_out = 4'b0;
+              d_select_shift_out = 16'b00000001;
             end
             else begin//load from cache, writeback data
               dbus_data_out = cache_in[7:0];
@@ -1309,15 +1309,15 @@ module smart_mux #(parameter CPU_ID=1'b0)
   input FP_add_valid;
   input int_valid;
   //the 4 d_select values
-  input [2:0] mem_d_select;
-  input [2:0] FP_mult_d_select;
-  input [2:0] FP_add_d_select;
-  input [2:0] int_d_select;
+  input [3:0] mem_d_select;
+  input [3:0] FP_mult_d_select;
+  input [3:0] FP_add_d_select;
+  input [3:0] int_d_select;
   //the 4 d_select_shift values
-  input [7:0] mem_d_select_shift;
-  input [7:0] FP_mult_d_select_shift;
-  input [7:0] FP_add_d_select_shift;
-  input [7:0] int_d_select_shift;
+  input [15:0] mem_d_select_shift;
+  input [15:0] FP_mult_d_select_shift;
+  input [15:0] FP_add_d_select_shift;
+  input [15:0] int_d_select_shift;
   //the 4 data values
   input [7:0] mem_data;
   input [7:0] FP_mult_data;
@@ -1329,8 +1329,8 @@ module smart_mux #(parameter CPU_ID=1'b0)
   output reg FP_add_stall;
   output reg int_stall;
   //the output for the common data bus
-  output reg [2:0] cdbus_d_select;
-  output reg [7:0] cdbus_d_select_shift;
+  output reg [3:0] cdbus_d_select;
+  output reg [15:0] cdbus_d_select_shift;
   output reg [7:0] cdbus_data;
   output reg cdbus_valid_data;
   output reg fake_mux_output_clock;
@@ -1363,8 +1363,8 @@ module smart_mux #(parameter CPU_ID=1'b0)
     if(how_many_inputs == 0) begin
       $display("CPU_ID=%b, mux says 0 inputs, nothing to do",CPU_ID);
       cdbus_valid_data = 0;
-      cdbus_d_select = 3'bz;
-      cdbus_d_select_shift = 8'bz;
+      cdbus_d_select = 4'bz;
+      cdbus_d_select_shift = 16'bz;
       cdbus_data = 8'bz;
       mem_stall = 0;
       FP_mult_stall = 0;
@@ -1452,8 +1452,8 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
   //the fake clock from the reservation station
   input fake_clock;
   //the values from the reservation stations of load and store
-  input [2:0] load_d_select;//d select
-  input [7:0] load_d_select_shift;//d select shift
+  input [3:0] load_d_select;//d select
+  input [15:0] load_d_select_shift;//d select shift
   input [11:0] load_address;//cache address (previously abus data)
   input [2:0] load_offset;//b code
   input [2:0] store_offset;//b code
@@ -1465,12 +1465,12 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
   input [2:0] store_op_code;
   input execution_unit_stall;
   input stall_by_mux;
-  input [2:0] store_d_select;
-  input [7:0] store_d_select_shift;
+  input [3:0] store_d_select;
+  input [15:0] store_d_select_shift;
   //the outputs for stalling the store reservation station
   output reg store_stall;
-  output reg [2:0] exec_d_select;
-  output reg [7:0] exec_d_select_shift;
+  output reg [3:0] exec_d_select;
+  output reg [15:0] exec_d_select_shift;
   output reg [2:0] exec_b_offset;
   output reg [7:0] exec_dbus_data;
   output reg [11:0] exec_abus_address;
@@ -1481,8 +1481,8 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
   
   initial begin
     store_stall = 0;
-    exec_d_select = 3'bz;
-    exec_d_select_shift = 8'bz;
+    exec_d_select = 4'bz;
+    exec_d_select_shift = 16'bz;
     exec_dbus_data = 8'bz;
     exec_op_code = 3'bz;
     exec_address = 12'bz;
@@ -1504,8 +1504,8 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
       if(how_many_outputs ==0) begin
         $display("CPU_ID=%b, memory mux, no load/store reservation stations to output",CPU_ID);
         store_stall = 0;
-        exec_d_select = 3'bz;
-        exec_d_select_shift = 8'bz;
+        exec_d_select = 4'bz;
+        exec_d_select_shift = 16'bz;
         exec_dbus_data = 8'bz;
         exec_address = 12'bz;
         exec_op_code = 3'bz;
@@ -1553,16 +1553,16 @@ endmodule
 //there are 8 of them
 //register 0 is the null register
 module regfile(
-  input [7:0] AselectAdd,//select the register index to read from to store into abus
-  input [7:0] AselectInt,//select the register index to read from to store into abus
-  input [7:0] AselectMult,//select the register index to read from to store into abus
-  input [7:0] AselectLdSt,//select the register index to read from to store into abus
-  input [7:0] BselectAdd,//select the register index to read from to store into bbus
-  input [7:0] BselectInt,//select the register index to read from to store into bbus
-  input [7:0] BselectMult,//select the register index to read from to store into bbus
-  input [7:0] BselectLdSt,//select the register index to read from to store into bbus
-  input [7:0] Dselect,//select the register to write to from dbus
-  input [7:0] busySelect,//flag for each flipflop to say if it is open
+  input [15:0] AselectAdd,//select the register index to read from to store into abus
+  input [15:0] AselectInt,//select the register index to read from to store into abus
+  input [15:0] AselectMult,//select the register index to read from to store into abus
+  input [15:0] AselectLdSt,//select the register index to read from to store into abus
+  input [15:0] BselectAdd,//select the register index to read from to store into bbus
+  input [15:0] BselectInt,//select the register index to read from to store into bbus
+  input [15:0] BselectMult,//select the register index to read from to store into bbus
+  input [15:0] BselectLdSt,//select the register index to read from to store into bbus
+  input [15:0] Dselect,//select the register to write to from dbus
+  input [15:0] busySelect,//flag for each flipflop to say if it is open
   input [7:0] dbus,//data in
   output [7:0] abusAdd,//data out
   output [7:0] abusInt,//data out
@@ -1572,7 +1572,7 @@ module regfile(
   output [7:0] bbusInt,//data out
   output [7:0] bbusMult,//data out
   output [7:0] bbusLdSt,//data out
-  output [7:0] busyBus,//bus for each of the reg entries if it's busy or not
+  output [15:0] busyBus,//bus for each of the reg entries if it's busy or not
   input clk,
   input validData
   );
@@ -1587,27 +1587,27 @@ module regfile(
   assign bbusMult = BselectMult[0] ? 8'b0 : 8'bz;
   assign busyBus[0] = 0;
   //only 7 of these
-  DNegflipFlop myFlips[6:0](
+  DNegflipFlop myFlips[14:0](
     .dbus(dbus),
     .abusAdd(abusAdd),
     .abusInt(abusInt),
     .abusMult(abusMult),
     .abusLdSt(abusLdSt),
-    .Dselect(Dselect[7:1]),//doing this means that index 7 of Deslect will go to DNegflipFlop index 7
-    .BselectLdSt(BselectLdSt[7:1]),
-    .BselectAdd(BselectAdd[7:1]),
-    .BselectInt(BselectInt[7:1]),
-    .BselectMult(BselectMult[7:1]),
-    .AselectAdd(AselectAdd[7:1]),
-    .AselectInt(AselectInt[7:1]),
-    .AselectLdSt(AselectLdSt[7:1]),
-    .AselectMult(AselectMult[7:1]),
-    .busySelect(busySelect[7:1]),
+    .Dselect(Dselect[15:1]),//doing this means that index 7 of Deslect will go to DNegflipFlop index 7
+    .BselectLdSt(BselectLdSt[15:1]),
+    .BselectAdd(BselectAdd[15:1]),
+    .BselectInt(BselectInt[15:1]),
+    .BselectMult(BselectMult[15:1]),
+    .AselectAdd(AselectAdd[15:1]),
+    .AselectInt(AselectInt[15:1]),
+    .AselectLdSt(AselectLdSt[15:1]),
+    .AselectMult(AselectMult[15:1]),
+    .busySelect(busySelect[15:1]),
     .bbusAdd(bbusAdd),
     .bbusInt(bbusInt),
     .bbusMult(bbusMult),
     .bbusLdSt(bbusLdSt),
-    .isBusy(busyBus[7:1]),
+    .isBusy(busyBus[15:1]),
     .clk(clk),
     .validData(validData)
     );
