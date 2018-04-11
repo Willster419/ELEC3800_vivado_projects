@@ -43,7 +43,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //the cache request line
   output [21:0] cache_request;
   //the data line from the cache
-  input [21:0] cache_data;
+  input [29:0] cache_data;
   //the signal if the cache has two requests at the same time and is busy
   input cache_busy;
   //////////////
@@ -1090,7 +1090,7 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
   //the input from the mux if there's two or more requests for the cdb and one execution needs to stall
   input stall_by_mux;
   //the cache input wire
-  input [21:0] cache_in;
+  input [29:0] cache_in;
   //the data from the regfile to store, from the dbus
   input [7:0] store_dbus_data_in;
   //flag for if the cache is busy
@@ -1217,15 +1217,19 @@ module execution_unit #(parameter CYCLE_TIME = 1, ID = 2'b00)
       if(ID==2'b11)begin
         if(cache_in >=0)begin
           $display("CPU_ID=%b, execution unit: cache_in is a valid value, (%b)",CPU_ID, cache_in);
-          if(cache_in[21]==CPU_ID)begin
+          if(cache_in[29]==CPU_ID)begin
             $display("CPU_ID=%b, execution unit: cache_in data is for this processor",CPU_ID);
-            if(cache_in[20])begin//store to cache, no writeback
+            if(cache_in[28])begin//store to cache, no writeback
               dbus_data_out = 8'b0;
               d_select_out = 4'b0;
               d_select_shift_out = 16'b00000001;
             end
             else begin//load from cache, writeback data
-              dbus_data_out = cache_in[7:0];
+              //select based on which block we want
+              //dbus_data_out = cache_in[7:0];
+              //block_offset is index 16
+              //true = block 1 = lower indexes
+              dbus_data_out = cache_in[16]? cache_in[7:0]:cache_in[15:8];
             end
             /*
             //set the output back to z to prevent additional cache accesses

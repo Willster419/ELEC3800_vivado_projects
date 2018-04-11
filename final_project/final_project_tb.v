@@ -31,7 +31,7 @@ module final_project_tb();
   //the request lines
   wire [21:0] p0_request, p1_request;
   //the data line out of the cache into both processors
-  wire [21:0] data_out;
+  wire [29:0] data_out;
   //////////////////////////////////////////
   
   //FOR TESTING PROCESSOR///////////////////
@@ -94,7 +94,7 @@ module final_project_tb();
     $display("REFRENCE: execution unit IDs:       001=MULT, 010=ADD, 011=LD/ST");
     $display("REFRENCE: current instruction list: 000=NOP,  001=LD,  010=ST, 011=ADD, 100=MULT, 101=SUBT");
     $display("REFRENCE: the request line:\n processor id (1 bit)\n load-store flag (1 bit) (0=load, 1=store)\n the tag (11 bits)\n the block offset (1 bits)\n the data (8 bits)");
-    $display("REFRENCE: the data_out line:\n the processor id (1 bit)\n the request type (load/store) (1 bit)\n the tag (11 bits)\n the block offset (1 bits)\n the data (if a load) (8 bits)");
+    $display("REFRENCE: the data_out line:\n the processor id (1 bit)\n the request type (load/store) (1 bit)\n the tag (11 bits)\n the block offset (1 bits)\n the data (if a load) (16 bits)");
     
     /*FOR TESTING CACHE/////////////////////////////////////////
     temp_request_from_p0 = 22'bz;
@@ -111,7 +111,7 @@ module final_project_tb();
     request_from_p1 [2] = 22'bz;
     ///////////////////////////////////////////////////////////*/
     
-    num_cycles = 75;
+    num_cycles = 90;
     for(i=0;i < num_cycles; i= i+1) begin
       clk=0;
       $display ("\nTime=%t,  clk=%b", $realtime, clk);

@@ -24,8 +24,9 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
   //the request type (load/store) (1 bit)
   //the tag (11 bits)
   //the block offset (1 bits)
-  //the data (if a load) (8 bits)
-  output reg [21:0] data_out;
+  //the data (if a load) (16 bits)
+  //needs to be 16 bits because a data line is inseperable
+  output reg [29:0] data_out;
   
   //flag to say if the cache can accept a new instruction
   output reg is_busy;
@@ -93,7 +94,7 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
     address_tag1 = 11'bz;
     selected_tag = 11'bz;
     block_offset = 1'bz;
-    data_out = 22'bz;
+    data_out = 30'bz;
     //set up the cache
     //first index is the entry in the array
     //second is the actual bus in said array
@@ -136,7 +137,7 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
     counter = 0;
     requests = 0;
     temp_address_line = 21'bz;
-    data_out = 22'bz;
+    data_out = 30'bz;
     //needs to be changed such that:
     //process requests
     //if 2 of them, set busy flag and only do one of them
@@ -238,25 +239,29 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
           if(block_offset)begin
             cache_line[counter] [7:0] = request_to_process[7:0];
             //report on the data line
-            data_out = {request_to_process[21],request_to_process[20],selected_tag,block_offset,cache_line[counter] [7:0]};
+            //data_out = {request_to_process[21],request_to_process[20],selected_tag,block_offset,cache_line[counter] [7:0]};
           end
           else begin
             cache_line[counter] [15:8] = request_to_process[7:0];
             //report on the data line
-            data_out = {request_to_process[21],request_to_process[20],selected_tag,block_offset,cache_line[counter] [15:8]};
+            //data_out = {request_to_process[21],request_to_process[20],selected_tag,block_offset,cache_line[counter] [15:8]};
           end
+          data_out = {request_to_process[21],request_to_process[20],selected_tag,block_offset,cache_line[counter] [15:0]};
         end
         1'b0: begin//load
           //load the data and report on the data line
+          //note that it needs to load the whole line
           //https://www.nandland.com/verilog/examples/example-concatenation-operator.html
-          if(block_offset)begin
-            $display("CACHE: mode is load, loading data=%b to dataline from address %b",cache_line[counter] [7:0],selected_tag);
-            data_out = {request_to_process[21],request_to_process[20],selected_tag,block_offset,cache_line[counter] [7:0]};
-          end
+          //if(block_offset)begin
+            $display("CACHE: mode is load, loading data=%b to dataline from address %b",cache_line[counter] [15:0],selected_tag);
+            data_out = {request_to_process[21],request_to_process[20],selected_tag,block_offset,cache_line[counter] [15:0]};
+          //end
+          /*
           else begin
             $display("CACHE: mode is load, loading data=%b to dataline from address %b",cache_line[counter] [15:8],selected_tag);
-            data_out = {request_to_process[21],request_to_process[20],selected_tag,block_offset,cache_line[counter] [15:8]};
+            data_out = {request_to_process[29],request_to_process[28],selected_tag,block_offset,cache_line[counter] [15:8]};
           end
+          */
         end
       endcase
       //set busy back down so that the processors know they can send again
@@ -267,7 +272,7 @@ module cache(clk,p0_request,p1_request,data_out, is_busy);
     end
     else begin
       $display("CACHE: 0 requesets, nothing to do, closing output");
-      data_out = 22'bz;
+      data_out = 30'bz;
     end
   end
 endmodule
