@@ -298,7 +298,8 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   .store_d_select(rs_ex_st_d_select), .store_d_select_shift(rs_ex_st_d_select_shift),
   //out
   .store_stall(RS_store_mux_stall), .exec_d_select(mem_ex_d_select), .exec_d_select_shift(mem_ex_d_select_shift),
-  /*.exec_b_offset(mem_ex_b_offset),*/ .exec_dbus_data(mem_ex_dbus_data), /*.exec_abus_address(mem_ex_abus_address),*/ .exec_op_code(mem_ex_op_code)
+  /*.exec_b_offset(mem_ex_b_offset),*/ .exec_dbus_data(mem_ex_dbus_data), /*.exec_abus_address(mem_ex_abus_address),*/ .exec_op_code(mem_ex_op_code),
+  .exec_address(mem_ex_abus_address)
 );
   
   //execution unit instance for loading/storing
@@ -943,7 +944,15 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
   always @(negedge clk) begin
     counter = 0;
     output_bus_touched = 0;
-    valid_data = 0;
+    if((ID==3'b011) && (store_mux_stall))begin
+      $display("CPU_ID=%d, RS=%d, store_mux_stall detected, keep valid_data=%b where it is",CPU_ID, ID, valid_data);
+      //also touch the output bus so that it leaves the values alone
+      output_bus_touched = 1;
+    end
+    else begin
+      valid_data = 0;
+    end
+    
     //update the values from the data index saved earlier
     if(a_update_index_flag) begin
       abus_data[a_update_index] = abus_in;
@@ -1048,6 +1057,15 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
     end
     trigger_exes = ~trigger_exes;
   end
+  /*
+  always@(posedge store_mux_stall)begin
+    $display("CPU_ID=%d, RS=%d, (from posedge store_mux_stall) detected, forcing stop of store output")
+  end
+  
+  always@(negedge (store_mux_stall)begin
+    
+  end
+  */
 endmodule
 
 //the module for creating the execution units
@@ -1470,7 +1488,7 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
   
   //handle mux selection/arbitration
   always @(fake_clock)begin
-    if(execution_unit_stall && stall_by_mux) begin
+    if(execution_unit_stall || stall_by_mux) begin
       $display("CPU_ID=%b, partly smart mux stalled due to execution/mux stall",CPU_ID);
     end
     else begin
