@@ -175,6 +175,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   //load
   wire [2:0] RS_load_dest;//d select
   wire [7:0] RS_load_dest_shift;//d select
+  wire RS_load_mux_stall;
   
   //the wires connect the lload and store RS to the mux
   wire [2:0] mem_ex_d_select;
@@ -295,10 +296,9 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
   .load_address(RS_load_address), /*.load_offset(RS_load_mem_ofset),*/ .store_dbus_data(RS_store_data), .store_address(RS_store_address),
   /*.store_offset(RS_store_mem_ofset),*/ .valid_load_data(RS_load_valid_data), .valid_store_data(RS_store_valid_data),
   .load_op_code(rs_ex_ld_op_code), .store_op_code(rs_ex_st_op_code), .execution_unit_stall(rs_ex_ld_st_is_busy), .stall_by_mux(mem_mux_stall),
-  .store_d_select(rs_ex_st_d_select), .store_d_select_shift(rs_ex_st_d_select_shift),
   //out
-  .store_stall(RS_store_mux_stall), .exec_d_select(mem_ex_d_select), .exec_d_select_shift(mem_ex_d_select_shift),
-  /*.exec_b_offset(mem_ex_b_offset),*/ .exec_dbus_data(mem_ex_dbus_data), /*.exec_abus_address(mem_ex_abus_address),*/ .exec_op_code(mem_ex_op_code)
+  .store_stall(RS_store_mux_stall), .exec_d_select(mem_ex_d_select), .exec_d_select_shift(mem_ex_d_select_shift), .load_stall(RS_load_mux_stall),
+  .exec_b_offset(mem_ex_b_offset), .exec_dbus_data(mem_ex_dbus_data), .exec_abus_address(mem_ex_abus_address), .exec_op_code(mem_ex_op_code)
 );
   
   //execution unit instance for loading/storing
@@ -396,26 +396,22 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     instruction_queue[1] [17:0] = 18'b001_010_010100001000;  //ld, r2,0x508
     instruction_queue[2] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
     instruction_queue[3] [17:0] = 18'b010_011_010100001000;  //st, r3,0x508
-    
     ///////////////////////////////////////////////////////////////////////
-    instruction_queue[4] [17:0] = 18'b001_100_010100010000;  //ld, r4,0x510
-    instruction_queue[5] [17:0] = 18'b001_101_010100011000;  //ld, r5,0x518
-    instruction_queue[6] [17:0] = 18'b011_110_100_101_000000;//add,r6,r4,r5
-    instruction_queue[7] [17:0] = 18'b010_110_010100011000;  //st, r6,0x518
-    /*
+    instruction_queue[4] [17:0] = 18'b001_001_010100010000;  //ld, r1,0x510
+    instruction_queue[5] [17:0] = 18'b001_010_010100011000;  //ld, r2,0x518
+    instruction_queue[6] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue[7] [17:0] = 18'b010_011_010100011000;  //st, r3,0x518
     ///////////////////////////////////////////////////////////////////////
     instruction_queue[8] [17:0] = 18'b001_001_010100100000;  //ld, r1,0x520
     instruction_queue[9] [17:0] = 18'b001_010_010100101000;  //ld, r2,0x528
-    instruction_queue[10] [17:0] = 18'b011_011_101_110_000000;//add,r3,r5,r6
+    instruction_queue[10] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
     instruction_queue[11] [17:0] = 18'b010_011_010100101000;  //st, r3,0x528
     ///////////////////////////////////////////////////////////////////////
-    
-    instruction_queue[12] [17:0] = 18'b001_111_010100110000;  //ld, r7,0x530
-    instruction_queue[13] [17:0] = 18'b001_001_010100111000;  //ld, r1,0x538
-    instruction_queue[14] [17:0] = 18'b011_001_111_001_000000;//add,r1,r7,r1
-    instruction_queue[15] [17:0] = 18'b010_001_010100111000;  //st, r1,0x538
+    instruction_queue[12] [17:0] = 18'b001_001_010100110000;  //ld, r1,0x530
+    instruction_queue[13] [17:0] = 18'b001_010_010100111000;  //ld, r2,0x538
+    instruction_queue[14] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
+    instruction_queue[15] [17:0] = 18'b010_011_010100111000;  //st, r3,0x538
     ///////////////////////////////////////////////////////////////////////
-    
     instruction_queue[16] [17:0] = 18'b001_001_010101000000;  //ld, r1,0x540
     instruction_queue[17] [17:0] = 18'b001_010_010101001000;  //ld, r2,0x548
     instruction_queue[18] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
@@ -436,7 +432,7 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
     instruction_queue[30] [17:0] = 18'b011_011_001_010_000000;//add,r3,r1,r2
     instruction_queue[31] [17:0] = 18'b010_011_010101111000;  //st, r3,0x578
     ///////////////////////////////////////////////////////////////////////
-    */
+    
     //fill the instruction queue of p2
     ////////////////////////////////////////////////////////////////////////
     instruction_queue2[0] [17:0] = 18'b001_001_010110000000;  //ld, r1,0x580
@@ -518,11 +514,10 @@ module final_project #(parameter CPU_ID = 1'b0) (clk,cache_request,cache_data,ca
         FP_mult_selected_flag = (FP_mult_full_flag)? 0 : 1;
       end
     endcase
-    $display("DEBUG: store=%b, load=%b, add=%b, mult=%b, int=%b",store_selected_flag,load_selected_flag,FP_add_selected_flag,FP_mult_selected_flag,int_selected_flag);
     if(store_selected_flag||load_selected_flag||FP_add_selected_flag||FP_mult_selected_flag||int_selected_flag) begin
       //set the busyBus for the regfile
       //if the destination is r0, don't bother cause it's the 0 register
-      //also don't set it for stores (read only)
+      //also don't set it for stores
       if(!store_selected_flag) begin
         busy_select_shift = (current_instruction[14:12] == 3'b0)? 8'b0 : 8'b00000001 << current_instruction[14:12];
       end
@@ -965,7 +960,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
         //$display("RS ID=%d, station %d is in use, operation_data_a_ready=%d, operation_data_b_ready=%d", ID,counter,operation_data_a_ready[counter],operation_data_b_ready[counter]);
         //end
         if(station_in_use[counter] && operation_data_a_ready[counter] && operation_data_b_ready[counter] && !execution_unit_busy) begin
-          if((ID==3'b011) && (store_mux_stall))begin
+          if((ID==3'b010) && (store_mux_stall))begin
             $display("CPU_ID=%b, RS ID=%d, stalled due to waiting on mux", CPU_ID, ID);
             valid_data = 1;
             disable data_output_break;
@@ -1003,7 +998,6 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
             operation_data_b_ready[counter2] = operation_data_b_ready[counter2+1];
             station_in_use[counter2] = station_in_use[counter2+1];
             a_b_equal[counter2] = a_b_equal[counter2+1];
-            cache_address[counter2] = cache_address[counter2+1];
             counter2 = counter2+1;
           end
           //then set the values of the last one to 0
@@ -1019,7 +1013,6 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
           operation_data_a_ready[BUS_LENGTH] = 0;
           operation_data_b_ready[BUS_LENGTH] = 0;
           station_in_use[BUS_LENGTH] = 0;
-          cache_address[BUS_LENGTH] = 0;
           a_b_equal[BUS_LENGTH] = 0;
           //and also set the station full flag to low
           if(station_full) begin
@@ -1035,6 +1028,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
         if((ID==3'b011)||(ID==3'b100)) begin
           $display("CPU_ID=%b, RS ID=%d, no instructions ready for execution unit, setting valid data to false", CPU_ID, ID);
           valid_data =0;
+          address_out = 12'bz;
         end
         else begin
           $display("CPU_ID=%b, RS ID=%d, no instructions ready for execution unit, closing outputs", CPU_ID, ID);
@@ -1043,6 +1037,7 @@ module reservation_station #(parameter BUS_LENGTH = 1, ID=3'b000, CPU_ID=1'b0)
           d_select_out = 3'bz;
           d_select_out_shift = 8'bz;
           op_code_out = 3'bz;
+          address_out = 12'bz;
         end
       end
     end
@@ -1422,12 +1417,10 @@ endmodule
 module partly_smart_mux #(parameter CPU_ID=1'b0)
 (
   //in
-  fake_clock, load_d_select, load_d_select_shift, load_address, store_dbus_data, store_address, store_d_select_shift,
-  valid_load_data, valid_store_data, load_op_code, store_op_code, execution_unit_stall, stall_by_mux, store_d_select,
+  fake_clock, load_d_select, load_d_select_shift, load_address, load_offset, store_dbus_data, store_address, store_offset,
+  valid_load_data, valid_store_data, load_op_code, store_op_code, execution_unit_stall, stall_by_mux,
   //out
-  store_stall, exec_d_select, exec_d_select_shift, exec_dbus_data, exec_op_code, exec_address,
-  //not used
-  load_offset, store_offset, exec_b_offset, exec_abus_address
+  store_stall, exec_d_select, exec_d_select_shift, exec_b_offset, exec_dbus_data, exec_abus_address, exec_op_code, load_stall
 );
   //the fake clock from the reservation station
   input fake_clock;
@@ -1445,9 +1438,7 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
   input [2:0] store_op_code;
   input execution_unit_stall;
   input stall_by_mux;
-  input [2:0] store_d_select;
-  input [7:0] store_d_select_shift;
-  //the outputs for stalling the store reservation station
+  //the outputs for stalling the store or load reservation station
   output reg store_stall;
   output reg [2:0] exec_d_select;
   output reg [7:0] exec_d_select_shift;
@@ -1455,17 +1446,24 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
   output reg [7:0] exec_dbus_data;
   output reg [11:0] exec_abus_address;
   output reg [2:0] exec_op_code;
-  output reg [11:0] exec_address;
-  //counter for how many stations want to go
-  reg [7:0] how_many_outputs;
+  output reg load_stall;
+  //reg to keep track of which of the stations has valid inputs
+  //index 0 is load, 1 is store
+  reg [1:0] how_many_outputs;
+  //reg [7:0] how_many_outputs;
+  //the arbiterfor determining which of the load and stores will go
+  reg arbiter;
   
   initial begin
     store_stall = 0;
     exec_d_select = 3'bz;
     exec_d_select_shift = 8'bz;
+    exec_b_offset = 3'bz;
     exec_dbus_data = 8'bz;
+    exec_abus_address = 12'bz;
     exec_op_code = 3'bz;
-    exec_address = 12'bz;
+    arbiter = 1'b0;
+    how_many_outputs = 2'b00;
   end
   
   //handle mux selection/arbitration
@@ -1474,56 +1472,65 @@ module partly_smart_mux #(parameter CPU_ID=1'b0)
       $display("CPU_ID=%b, partly smart mux stalled due to execution/mux stall",CPU_ID);
     end
     else begin
-      how_many_outputs = 0;
+      how_many_outputs = 2'b00;
       if(valid_load_data > 0) begin
-        how_many_outputs = how_many_outputs+1;
+        how_many_outputs[0] = 1'b1;
       end
       if(valid_store_data > 0) begin
-        how_many_outputs = how_many_outputs+1;
+        how_many_outputs[1] = 1'b1;
       end
-      if(how_many_outputs ==0) begin
-        $display("CPU_ID=%b, memory mux, no load/store reservation stations to output",CPU_ID);
-        store_stall = 0;
-        exec_d_select = 3'bz;
-        exec_d_select_shift = 8'bz;
-        exec_dbus_data = 8'bz;
-        exec_address = 12'bz;
-        exec_op_code = 3'bz;
-      end
-      else if(how_many_outputs == 1)begin
-        $display("CPU_ID=%b, memory mux, one load/store reservation stations to output",CPU_ID);
-        store_stall = 0;
-        if(valid_load_data > 0) begin
+      case(how_many_outputs)
+        2'b00:begin//none
+          $display("CPU_ID=%b, memory mux, no load/store reservation stations outputting",CPU_ID);
+          store_stall = 0;
+          load_stall = 0;
+          exec_d_select = 3'bz;
+          exec_b_offset = 3'bz;
+          exec_d_select_shift = 8'bz;
+          exec_dbus_data = 8'bz;
+          exec_abus_address = 12'bz;
+          exec_op_code = 3'bz;
+        end
+        2'b01:begin//one store
+          $display("CPU_ID=%b, memory mux, one store reservation stations outputting",CPU_ID);
+          store_stall=0;
+          load_stall = 0;
+          //not matter
+          exec_d_select = 3'b0;
+          exec_d_select_shift = 8'b00000001;
+          //matter
+          exec_b_offset = store_offset;
+          exec_dbus_data = store_dbus_data;
+          exec_abus_address = store_address;
+          exec_op_code = store_op_code;
+        end
+        2'b10:begin//one load
+          $display("CPU_ID=%b, memory mux, one load reservation stations outputting",CPU_ID);
+          store_stall=0;
+          load_stall=0;
           //not matter
           exec_dbus_data = 8'b0;
           //matter
+          exec_b_offset = load_offset;
           exec_d_select = load_d_select;
           exec_d_select_shift = load_d_select_shift;
-          exec_address = load_address;
+          exec_abus_address = load_address;
           exec_op_code = load_op_code;
         end
-        else if(valid_store_data > 0) begin
-          //not matter
-          
-          //matter
-          exec_d_select = store_d_select_shift;
-          exec_d_select_shift = store_d_select_shift;
-          exec_dbus_data = store_dbus_data;
-          exec_address = store_address;
-          exec_op_code = store_op_code;
+        2'b11:begin//both
+          $display("CPU_ID=%b, memory mux, two load/store reservation stations outputting, arbiting",CPU_ID);
+          //0=load,1=store
+          store_stall = arbiter? 0:1;
+          load_stall = arbiter? 1:0;
+          exec_dbus_data = arbiter? store_dbus_data:8'b0;
+          exec_b_offset = arbiter? store_offset:load_offset;
+          exec_d_select = arbiter? 8'b0:load_d_select;
+          exec_d_select_shift = arbiter? 8'b00000001:load_d_select_shift;
+          exec_abus_address = arbiter? store_address:load_address;
+          exec_op_code = arbiter? store_op_code:load_op_code;
+          arbiter=~arbiter;
         end
-      end
-      else if(how_many_outputs > 1)begin
-        $display("CPU_ID=%b, memory mux, two load/store reservation stations to output, stall stores",CPU_ID);
-        store_stall = 1;
-        //not matter
-        exec_dbus_data = 8'b0;
-        //matter
-        exec_d_select = load_d_select;
-        exec_d_select_shift = load_d_select_shift;
-        exec_address = load_address;
-        exec_op_code = load_op_code;
-      end
+      endcase
     end
   end
 endmodule

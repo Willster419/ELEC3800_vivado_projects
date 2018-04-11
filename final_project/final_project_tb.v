@@ -70,7 +70,7 @@ module final_project_tb();
     .cache_data(data_out),
     .cache_busy(cache_busy)
   );
-  
+  /*
   final_project #(.CPU_ID(1'b1)) dut2
   (
     .clk(clk),
@@ -78,7 +78,7 @@ module final_project_tb();
     .cache_data(data_out),
     .cache_busy(cache_busy)
   );
-  
+  */
   
   initial begin
     //NOTE: he set us up for a 25MHz clock
@@ -111,7 +111,7 @@ module final_project_tb();
     request_from_p1 [2] = 22'bz;
     ///////////////////////////////////////////////////////////*/
     
-    num_cycles = 15;
+    num_cycles = 22;
     for(i=0;i < num_cycles; i= i+1) begin
       clk=0;
       $display ("\nTime=%t,  clk=%b", $realtime, clk);

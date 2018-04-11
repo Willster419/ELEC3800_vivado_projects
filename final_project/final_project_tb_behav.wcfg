@@ -12,23 +12,104 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="114600001fs"></ZoomEndTime>
-      <Cursor1Time time="202736000fs"></Cursor1Time>
+      <ZoomEndTime time="57300001fs"></ZoomEndTime>
+      <Cursor1Time time="300000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="193"></NameColumnWidth>
       <ValueColumnWidth column_width="58"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="2" />
+   <WVObjectSize size="19" />
    <wvobject fp_name="/final_project_tb/make_it_rain/clk" type="logic">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/i" type="array">
+      <obj_property name="ElementShortName">i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">i[31:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/current_instruction" type="array">
+      <obj_property name="ElementShortName">current_instruction[17:0]</obj_property>
+      <obj_property name="ObjectShortName">current_instruction[17:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/store_station/cache_address" type="array">
+      <obj_property name="ElementShortName">cache_address[1:0][11:0]</obj_property>
+      <obj_property name="ObjectShortName">cache_address[1:0][11:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/psmux/store_address" type="array">
+      <obj_property name="ElementShortName">store_address[11:0]</obj_property>
+      <obj_property name="ObjectShortName">store_address[11:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/psmux/store_d_select" type="array">
+      <obj_property name="ElementShortName">store_d_select[2:0]</obj_property>
+      <obj_property name="ObjectShortName">store_d_select[2:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/psmux/load_address" type="array">
+      <obj_property name="ElementShortName">load_address[11:0]</obj_property>
+      <obj_property name="ObjectShortName">load_address[11:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/psmux/load_d_select" type="array">
+      <obj_property name="ElementShortName">load_d_select[2:0]</obj_property>
+      <obj_property name="ObjectShortName">load_d_select[2:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/psmux/exec_d_select" type="array">
+      <obj_property name="ElementShortName">exec_d_select[2:0]</obj_property>
+      <obj_property name="ObjectShortName">exec_d_select[2:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/psmux/exec_op_code" type="array">
+      <obj_property name="ElementShortName">exec_op_code[2:0]</obj_property>
+      <obj_property name="ObjectShortName">exec_op_code[2:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/psmux/exec_dbus_data" type="array">
+      <obj_property name="ElementShortName">exec_dbus_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">exec_dbus_data[7:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/psmux/exec_address" type="array">
+      <obj_property name="ElementShortName">exec_address[11:0]</obj_property>
+      <obj_property name="ObjectShortName">exec_address[11:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/psmux/store_stall" type="logic">
+      <obj_property name="ElementShortName">store_stall</obj_property>
+      <obj_property name="ObjectShortName">store_stall</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/make_it_rain/p0_request" type="array">
+      <obj_property name="ElementShortName">p0_request[21:0]</obj_property>
+      <obj_property name="ObjectShortName">p0_request[21:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/make_it_rain/request_to_process" type="array">
+      <obj_property name="ElementShortName">request_to_process[21:0]</obj_property>
+      <obj_property name="ObjectShortName">request_to_process[21:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/make_it_rain/data_out" type="array">
+      <obj_property name="ElementShortName">data_out[21:0]</obj_property>
+      <obj_property name="ObjectShortName">data_out[21:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/smux/cdbus_d_select" type="array">
+      <obj_property name="ElementShortName">cdbus_d_select[2:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_d_select[2:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/final_project_tb/dut/smux/cdbus_data" type="array">
+      <obj_property name="ElementShortName">cdbus_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cdbus_data[7:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/final_project_tb/make_it_rain/cache_line" type="array">
       <obj_property name="ElementShortName">cache_line[15:0][15:0]</obj_property>
       <obj_property name="ObjectShortName">cache_line[15:0][15:0]</obj_property>
       <obj_property name="Radix">BINARYRADIX</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject fp_name="/final_project_tb/make_it_rain/cache_line[15]" type="array">
          <obj_property name="ElementShortName">[15][15:0]</obj_property>
          <obj_property name="ObjectShortName">[15][15:0]</obj_property>
