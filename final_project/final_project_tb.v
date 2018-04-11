@@ -111,7 +111,7 @@ module final_project_tb();
     request_from_p1 [2] = 22'bz;
     ///////////////////////////////////////////////////////////*/
     
-    num_cycles = 20;
+    num_cycles = 72;
     for(i=0;i < num_cycles; i= i+1) begin
       clk=0;
       $display ("\nTime=%t,  clk=%b", $realtime, clk);
