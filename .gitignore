@@ -3,3 +3,14 @@
 /assignment_4/assignment_4.ip_user_files
 /assignment_4/assignment_4.runs
 /assignment_4/assignment_4.sim
+/final_project/vivado.log
+*.wdf
+*.wpc
+/final_project/final_project.cache/wt
+/final_project/final_project.hw
+/final_project/final_project.ip_user_files
+/final_project/final_project.sim/sim_1/behav/xsim
+/final_project/vivado.jou
+/final_project/*.jou
+/final_project/*.log
+/final_project/*.str
